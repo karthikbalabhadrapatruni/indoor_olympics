@@ -14,7 +14,7 @@ import { readPhotoFile } from "../lib/client/files";
 import { apiRequest } from "../lib/client/api";
 import { NAV_ITEMS } from "../lib/client/constants";
 
-export default function GameTrackerApp({ sessionUser }) {
+export default function GameTrackerApp({ sessionUser, authConfigured }) {
   const [activePage, setActivePage] = useState("dashboard");
   const [toast, setToast] = useState(null);
   const [authState, setAuthState] = useState({
@@ -363,7 +363,7 @@ export default function GameTrackerApp({ sessionUser }) {
   }
 
   if (!sessionUser) {
-    return <AuthLanding />;
+    return <AuthLanding authConfigured={authConfigured} />;
   }
 
   if (authState.loading) {
