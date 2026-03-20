@@ -59,8 +59,8 @@ export function ProfileHubPage({
             <Typography variant="h5">{me?.username || sessionUser?.name}</Typography>
             <Typography color="text.secondary">{sessionUser?.email}</Typography>
             <Stack direction="row" spacing={1} flexWrap="wrap">
-              <Chip label={`Google SSO`} color="primary" variant="outlined" />
-              {me?.rank ? <Chip label={`Rank #${me.rank}`} variant="outlined" /> : null}
+              <Chip label={`Google SSO`} color="primary" variant="outlined" sx={{ borderRadius: 2 }} />
+              {me?.rank ? <Chip label={`Rank #${me.rank}`} variant="outlined" sx={{ borderRadius: 2 }} /> : null}
             </Stack>
           </Stack>
           <Box sx={{ ml: { md: "auto" } }}>
@@ -122,7 +122,12 @@ export function ProfileHubPage({
                     <Box key={item.score_id}>
                       <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
                         <Stack direction="row" spacing={1} alignItems="center">
-                          <Chip label={item.game_type_name || "Game"} color="primary" variant="outlined" />
+                          <Chip
+                            label={item.game_type_name || "Game"}
+                            color="primary"
+                            variant="outlined"
+                            sx={{ borderRadius: 2 }}
+                          />
                           <Typography>{item.game_id}</Typography>
                         </Stack>
                         <Stack direction="row" spacing={1} alignItems="center">
@@ -131,6 +136,7 @@ export function ProfileHubPage({
                             label={item.is_winner ? "Won" : "Played"}
                             color={item.is_winner ? "success" : "default"}
                             variant={item.is_winner ? "filled" : "outlined"}
+                            sx={{ borderRadius: 2 }}
                           />
                         </Stack>
                       </Stack>

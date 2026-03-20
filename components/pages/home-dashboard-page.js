@@ -89,7 +89,7 @@ export function HomeDashboardPage({ data, paletteMap, onOpenGames }) {
                   <LinearProgress
                     variant="determinate"
                     value={data.me?.win_pct || 0}
-                    sx={{ height: 10, borderRadius: 2 }}
+                    sx={{ height: 10 }}
                   />
                   <Typography variant="body2" fontWeight={700}>
                     {data.me?.win_pct || 0}% over {data.me?.total_games || 0} sessions
@@ -128,7 +128,7 @@ export function HomeDashboardPage({ data, paletteMap, onOpenGames }) {
                       key={session.game_id}
                       sx={{
                         p: 2.25,
-                        borderRadius: 4,
+                        borderRadius: 3,
                         bgcolor: "grey.50",
                         border: "1px solid rgba(15,23,42,0.06)",
                       }}

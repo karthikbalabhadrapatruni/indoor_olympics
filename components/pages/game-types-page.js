@@ -39,7 +39,7 @@ export function GameTypesPage({
             sx={{
               p: { xs: 2.25, md: 3 },
               height: "100%",
-              borderRadius: 5,
+              borderRadius: 3,
               background: "linear-gradient(160deg, rgba(36,87,166,0.08), rgba(11,122,117,0.14))",
             }}
           >
@@ -107,7 +107,7 @@ export function GameTypesPage({
                     <Card
                       key={gameType.game_type_id}
                       variant="outlined"
-                      sx={{ p: { xs: 2, md: 2.5 }, borderRadius: 4 }}
+                      sx={{ p: { xs: 2, md: 2.5 }, borderRadius: 3 }}
                     >
                       <Stack spacing={2}>
                         <Stack
@@ -128,6 +128,7 @@ export function GameTypesPage({
                             }
                             color="primary"
                             variant="outlined"
+                            sx={{ borderRadius: 2 }}
                           />
                         </Stack>
 

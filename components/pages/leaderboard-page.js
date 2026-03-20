@@ -81,7 +81,7 @@ export function LeaderboardPage({
                     <LinearProgress
                       variant="determinate"
                       value={Math.min(100, item.win_pct)}
-                      sx={{ height: 8, borderRadius: 999 }}
+                      sx={{ height: 8 }}
                     />
                   </Stack>
                   <Stack alignItems="flex-end">
@@ -94,6 +94,7 @@ export function LeaderboardPage({
                     label={`${item.win_pct}% wins`}
                     color="primary"
                     variant="outlined"
+                    sx={{ borderRadius: 2 }}
                   />
                 </Stack>
               );

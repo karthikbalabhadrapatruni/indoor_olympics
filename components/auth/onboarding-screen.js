@@ -1,20 +1,25 @@
 "use client";
 
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
+import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
+import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
 import {
   Avatar,
   Box,
   Button,
   Card,
   Container,
+  IconButton,
   Stack,
   TextField,
   Typography,
   useTheme,
 } from "@mui/material";
+import { useAppColorMode } from "../providers/app-theme-provider";
 
 export function OnboardingScreen({ sessionUser, username, loading, error, onChangeUsername, onSubmit }) {
   const theme = useTheme();
+  const { mode, toggleColorMode } = useAppColorMode();
   const isDark = theme.palette.mode === "dark";
 
   return (
@@ -28,6 +33,13 @@ export function OnboardingScreen({ sessionUser, username, loading, error, onChan
           : "linear-gradient(180deg, rgba(36,87,166,0.10), transparent 25%), radial-gradient(circle at right top, rgba(11,122,117,0.10), transparent 30%), #F4F7FC",
       }}
     >
+      <IconButton
+        onClick={toggleColorMode}
+        color="primary"
+        sx={{ position: "absolute", top: 20, right: 20, borderRadius: 2.5 }}
+      >
+        {mode === "dark" ? <LightModeRoundedIcon /> : <DarkModeRoundedIcon />}
+      </IconButton>
       <Container maxWidth="sm">
         <Card sx={{ p: { xs: 3, md: 4 }, borderRadius: 3 }}>
           <Stack spacing={3} alignItems="center" textAlign="center">

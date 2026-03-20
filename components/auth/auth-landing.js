@@ -1,11 +1,15 @@
 "use client";
 
 import GoogleIcon from "@mui/icons-material/Google";
-import { Alert, Box, Button, Card, Stack, Typography, useTheme } from "@mui/material";
+import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
+import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
+import { Alert, Box, Button, Card, IconButton, Stack, Typography, useTheme } from "@mui/material";
 import { signIn } from "next-auth/react";
+import { useAppColorMode } from "../providers/app-theme-provider";
 
 export function AuthLanding({ authConfigured }) {
   const theme = useTheme();
+  const { mode, toggleColorMode } = useAppColorMode();
   const isDark = theme.palette.mode === "dark";
 
   return (
@@ -21,6 +25,13 @@ export function AuthLanding({ authConfigured }) {
           : "radial-gradient(circle at top, rgba(34,85,164,0.14), transparent 28%), linear-gradient(180deg, #F7FAFF 0%, #EEF2F8 100%)",
       }}
     >
+      <IconButton
+        onClick={toggleColorMode}
+        color="primary"
+        sx={{ position: "absolute", top: 20, right: 20, borderRadius: 2.5 }}
+      >
+        {mode === "dark" ? <LightModeRoundedIcon /> : <DarkModeRoundedIcon />}
+      </IconButton>
       <Card
         sx={{
           width: "100%",
