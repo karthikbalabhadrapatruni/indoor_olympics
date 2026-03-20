@@ -220,22 +220,10 @@ async function api(path,opts={}){
   const d=await r.json();if(!r.ok)throw new Error(d.error||'Request failed');return d;
 }
 async function loadAll(){
-  const [users,gameTypes,sessions,scores,rankings,allrounders]=await Promise.all([
-    api('/api/users'),api('/api/game-types'),api('/api/game-sessions'),
-    api('/api/scores'),api('/api/analytics?type=rankings'),api('/api/analytics?type=allrounders'),
-  ]);
-  Object.assign(S,{users,gameTypes,sessions,scores,rankings,allrounders});
-  S.users.forEach(u=>pal(u.user_id));
-}
-function go(id){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
-  document.querySelectorAll('.nav').forEach(n=>n.classList.remove('on'));
-  document.getElementById('page-'+id).classList.add('on');
-  const m={dashboard:0,players:1,games:2,'enter-scores':3,'add-player':4,profile:5};
-  document.querySelectorAll('.nav')[m[id]]?.classList.add('on');
-  if(id==='games')renderGtChips();
-  if(id==='profile')renderProfileChips();
-  if(id==='enter-scores')initEnterScores();
+  // Single batched call = 1 Sheets quota unit instead of 30
+  const d = await api('/api/bootstrap');
+  Object.assign(S, d);
+  S.users.forEach(u => pal(u.user_id));
 }
 function renderDashboard(){
   document.getElementById('m-players').textContent=S.users.length;

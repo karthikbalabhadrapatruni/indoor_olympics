@@ -1,12 +1,6 @@
 // api/scores.js
-// POST body: { game_id, scores: [{ user_id, score }] }
-// Automatically:
-//   1. Determines winner (highest score)
-//   2. Appends to scores sheet
-//   3. Upserts user_game_stats per player
 import {
-  getSheetsClient, readSheet, appendRow, upsertStats,
-  rowToScore,
+  getSheetsClient, readSheet, appendRow, upsertStats, rowToScore,
 } from "../lib/sheets.js";
 
 export default async function handler(req, res) {
@@ -29,15 +23,12 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "game_id and scores[] required" });
       }
 
-      // Resolve game session → game_type_id
       const sessionRows = await readSheet(sheets, "game_sessions!A2:C");
-      const session = sessionRows.find((r) => r[0] === game_id);
-      if (!session) {
-        return res.status(404).json({ error: `game_id '${game_id}' not found` });
-      }
-      const game_type_id = session[1];
+      const session = sessionRows.find(r => r[0] === game_id);
+      if (!session) return res.status(404).json({ error: `game_id '${game_id}' not found` });
 
-      const maxScore = Math.max(...scores.map((s) => Number(s.score)));
+      const game_type_id = session[1];
+      const maxScore = Math.max(...scores.map(s => Number(s.score)));
 
       const written = [];
       for (const entry of scores) {
@@ -46,16 +37,15 @@ export default async function handler(req, res) {
         const is_winner = numScore === maxScore;
 
         await appendRow(sheets, "scores!A:E", [
-          score_id,
-          game_id,
-          entry.user_id,
-          numScore,
-          is_winner ? "TRUE" : "FALSE",
+          score_id, game_id, entry.user_id, numScore, is_winner ? "TRUE" : "FALSE",
         ]);
-
         await upsertStats(sheets, entry.user_id, game_type_id, numScore, is_winner ? 1 : 0);
-
         written.push({ score_id, game_id, user_id: entry.user_id, score: numScore, is_winner });
+      }
+
+      // Bust bootstrap cache so next load re-reads fresh data
+      if (globalThis.__gtCacheInvalidated !== undefined) {
+        globalThis.__gtCacheInvalidated = Date.now();
       }
 
       return res.status(201).json({ written });
