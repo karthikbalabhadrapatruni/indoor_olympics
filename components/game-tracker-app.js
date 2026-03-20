@@ -45,7 +45,7 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
   const [leaderboardState, setLeaderboardState] = useState({
     items: [],
     pagination: { page: 1, pageSize: 10, total: 0, totalPages: 1 },
-    sort: { sortBy: "total_score", sortOrder: "desc" },
+    sort: { sortBy: "total_wins", sortOrder: "desc" },
     loading: false,
   });
   const [gamesState, setGamesState] = useState({

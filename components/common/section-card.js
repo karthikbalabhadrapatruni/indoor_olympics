@@ -7,7 +7,12 @@ export function SectionCard({ title, children, action }) {
     <Card sx={{ borderRadius: 4 }}>
       <CardContent sx={{ p: { xs: 2, md: 2.5 }, "&:last-child": { pb: { xs: 2, md: 2.5 } } }}>
         <Stack spacing={2}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            justifyContent="space-between"
+            alignItems={{ xs: "stretch", sm: "center" }}
+            spacing={2}
+          >
             <Typography variant="overline" color="text.secondary">
               {title}
             </Typography>

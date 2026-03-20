@@ -5,6 +5,7 @@ import EmojiEventsRoundedIcon from "@mui/icons-material/EmojiEventsRounded";
 import FlashOnRoundedIcon from "@mui/icons-material/FlashOnRounded";
 import SportsScoreRoundedIcon from "@mui/icons-material/SportsScoreRounded";
 import {
+  alpha,
   Box,
   Button,
   Chip,
@@ -13,14 +14,21 @@ import {
   LinearProgress,
   Stack,
   Typography,
+  useTheme,
 } from "@mui/material";
 import { MetricCard } from "../common/metric-card";
 import { PlayerAvatar } from "../common/player-avatar";
 import { SectionCard } from "../common/section-card";
 
 export function HomeDashboardPage({ data, paletteMap, onOpenGames }) {
+  const theme = useTheme();
   const recentSessions = [...data.sessions].reverse().slice(0, 4);
   const myRank = data.rankings.findIndex((entry) => entry.user_id === data.me?.user_id) + 1;
+  const softSurface = theme.palette.mode === "dark" ? alpha("#FFFFFF", 0.03) : theme.palette.grey[50];
+  const heroSurface =
+    theme.palette.mode === "dark"
+      ? "linear-gradient(160deg, rgba(139,184,255,0.10), rgba(111,215,203,0.08))"
+      : "linear-gradient(160deg, rgba(36,87,166,0.10), rgba(11,122,117,0.10))";
 
   return (
     <Stack spacing={3.5}>
@@ -63,8 +71,7 @@ export function HomeDashboardPage({ data, paletteMap, onOpenGames }) {
               sx={{
                 p: 3,
                 borderRadius: 4,
-                background:
-                  "linear-gradient(160deg, rgba(36,87,166,0.10), rgba(11,122,117,0.10))",
+                background: heroSurface,
               }}
             >
               <Stack spacing={2}>
@@ -129,8 +136,8 @@ export function HomeDashboardPage({ data, paletteMap, onOpenGames }) {
                       sx={{
                         p: 2.25,
                         borderRadius: 3,
-                        bgcolor: "grey.50",
-                        border: "1px solid rgba(15,23,42,0.06)",
+                        bgcolor: softSurface,
+                        border: `1px solid ${theme.palette.divider}`,
                       }}
                     >
                       <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" spacing={2}>

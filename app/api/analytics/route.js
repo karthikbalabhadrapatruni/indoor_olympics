@@ -16,7 +16,7 @@ export async function GET(request) {
   const page = parsePositiveInt(searchParams.get("page"), 1);
   const pageSize = Math.min(parsePositiveInt(searchParams.get("pageSize"), 10), 50);
   const sortOrder = parseSortOrder(searchParams.get("sortOrder"), "desc");
-  const sortBy = searchParams.get("sortBy") || "total_score";
+  const sortBy = searchParams.get("sortBy") || "total_wins";
 
   try {
     const data = await readAllData();
@@ -30,11 +30,17 @@ export async function GET(request) {
     );
 
     if (type === "rankings") {
-      const allowedSortFields = new Set(["username", "total_score", "win_pct", "total_wins", "total_games"]);
-      const safeSortBy = allowedSortFields.has(sortBy) ? sortBy : "total_score";
+      const allowedSortFields = new Set(["username", "win_pct", "total_wins", "total_games"]);
+      const safeSortBy = allowedSortFields.has(sortBy) ? sortBy : "total_wins";
       const sorted = [...analytics.rankings].sort((left, right) => {
         const primary = compareValues(left[safeSortBy], right[safeSortBy], sortOrder);
         if (primary !== 0) return primary;
+        if (left.total_wins !== right.total_wins) {
+          return compareValues(left.total_wins, right.total_wins, "desc");
+        }
+        if (left.win_pct !== right.win_pct) {
+          return compareValues(left.win_pct, right.win_pct, "desc");
+        }
         return compareValues(left.username, right.username, "asc");
       });
       const paged = paginateItems(sorted, page, pageSize);

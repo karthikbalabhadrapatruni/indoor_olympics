@@ -6,6 +6,7 @@ import FlagRoundedIcon from "@mui/icons-material/FlagRounded";
 import GroupAddRoundedIcon from "@mui/icons-material/GroupAddRounded";
 import ScoreboardRoundedIcon from "@mui/icons-material/ScoreboardRounded";
 import {
+  alpha,
   Box,
   Button,
   Card,
@@ -23,6 +24,7 @@ import {
   Stack,
   TextField,
   Typography,
+  useTheme,
 } from "@mui/material";
 import { ListControls } from "../common/list-controls";
 import { PlayerAvatar } from "../common/player-avatar";
@@ -64,6 +66,9 @@ export function GamesWorkspacePage({
   onChangeSessionsSortBy,
   onChangeSessionsSortOrder,
 }) {
+  const theme = useTheme();
+  const mutedSurface = theme.palette.mode === "dark" ? alpha("#FFFFFF", 0.04) : "rgba(15, 23, 42, 0.03)";
+  const softSurface = theme.palette.mode === "dark" ? alpha("#FFFFFF", 0.03) : theme.palette.grey[50];
   const addPlayersOptions = addPlayersState.game
     ? data.users.filter(
         (user) => !addPlayersState.game.members.some((member) => member.user_id === user.user_id)
@@ -98,7 +103,10 @@ export function GamesWorkspacePage({
                 p: 3,
                 height: "100%",
                 borderRadius: 4,
-                background: "linear-gradient(160deg, rgba(36,87,166,0.08), rgba(11,122,117,0.12))",
+                background:
+                  theme.palette.mode === "dark"
+                    ? "linear-gradient(160deg, rgba(139,184,255,0.10), rgba(111,215,203,0.08))"
+                    : "linear-gradient(160deg, rgba(36,87,166,0.08), rgba(11,122,117,0.12))",
               }}
             >
               <Stack spacing={2}>
@@ -140,27 +148,34 @@ export function GamesWorkspacePage({
             </Card>
           </Grid>
           <Grid item xs={12} lg={8}>
-            <SectionCard title="Your rooms">
-              <Stack spacing={2}>
-                <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ md: "center" }}>
-                  <TextField
-                    select
-                    label="Game type"
-                    value={gameTypeFilter}
-                    onChange={(event) => onChangeGameTypeFilter(event.target.value)}
-                    sx={{ minWidth: { xs: "100%", md: 240 } }}
-                  >
-                    <MenuItem value="all">All game types</MenuItem>
-                    {data.gameTypes.map((item) => (
-                      <MenuItem key={item.game_type_id} value={item.name}>
-                        {item.name}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                  <Typography color="text.secondary">
-                    Browse every room here and narrow the list only when you need to.
-                  </Typography>
-                </Stack>
+            <SectionCard
+              title="Rooms"
+              action={
+                <TextField
+                  select
+                  size="small"
+                  label="Game type"
+                  value={gameTypeFilter}
+                  onChange={(event) => onChangeGameTypeFilter(event.target.value)}
+                  sx={{ minWidth: { xs: "100%", md: 220 } }}
+                >
+                  <MenuItem value="all">All game types</MenuItem>
+                  {data.gameTypes.map((item) => (
+                    <MenuItem key={item.game_type_id} value={item.name}>
+                      {item.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              }
+            >
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: 3,
+                  bgcolor: mutedSurface,
+                  border: `1px solid ${theme.palette.divider}`,
+                }}
+              >
                 <ListControls
                   page={sessionsPagination.page}
                   totalPages={sessionsPagination.totalPages}
@@ -174,7 +189,7 @@ export function GamesWorkspacePage({
                   onChangeSortBy={onChangeSessionsSortBy}
                   onChangeSortOrder={onChangeSessionsSortOrder}
                 />
-              </Stack>
+              </Box>
             </SectionCard>
           </Grid>
         </Grid>
@@ -205,35 +220,21 @@ export function GamesWorkspacePage({
                     <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" spacing={2}>
                       <Stack spacing={0.75}>
                         <Typography variant="h5">{session.title}</Typography>
-                        <Stack direction="row" spacing={1} flexWrap="wrap">
-                          <Chip
-                            label={gameType?.name || "Game"}
-                            color="primary"
-                            variant="outlined"
-                            sx={{ borderRadius: 2 }}
-                          />
-                          <Chip
-                            label={(session.played_at || "").split("T")[0]}
-                            variant="outlined"
-                            sx={{ borderRadius: 2 }}
-                          />
-                          <Chip
-                            label={session.visibility || "public"}
-                            variant="outlined"
-                            sx={{ borderRadius: 2, textTransform: "capitalize" }}
-                          />
-                          <Chip
-                            label={`${session.round_count || 0} rounds`}
-                            variant="outlined"
-                            sx={{ borderRadius: 2 }}
-                          />
-                          <Chip
-                            label={session.status === "ended" ? "Ended" : "Active"}
-                            color={session.status === "ended" ? "default" : "success"}
-                            variant={session.status === "ended" ? "outlined" : "filled"}
-                            sx={{ borderRadius: 2 }}
-                          />
-                        </Stack>
+                        <Typography color="text.secondary">
+                          {gameType?.name || "Game"} · {(session.played_at || "").split("T")[0]} ·{" "}
+                          {session.visibility || "public"} · {session.round_count || 0} rounds
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: session.status === "ended" ? "text.secondary" : "success.main",
+                            fontWeight: 700,
+                            letterSpacing: "0.04em",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          {session.status === "ended" ? "Ended" : "Active"}
+                        </Typography>
                       </Stack>
                       <Stack direction="row" spacing={1} flexWrap="wrap" justifyContent="flex-end">
                         <Button
@@ -343,7 +344,7 @@ export function GamesWorkspacePage({
                                       direction="row"
                                       alignItems="center"
                                       justifyContent="space-between"
-                                      sx={{ p: 1.5, borderRadius: 3, bgcolor: "grey.50" }}
+                                      sx={{ p: 1.5, borderRadius: 3, bgcolor: softSurface }}
                                     >
                                       <Stack direction="row" spacing={1.5} alignItems="center">
                                         <PlayerAvatar
@@ -472,7 +473,7 @@ export function GamesWorkspacePage({
                   direction="row"
                   justifyContent="space-between"
                   alignItems="center"
-                  sx={{ p: 1.5, borderRadius: 2.5, bgcolor: "grey.50" }}
+                  sx={{ p: 1.5, borderRadius: 2.5, bgcolor: softSurface }}
                 >
                   <Stack direction="row" spacing={1.5} alignItems="center">
                     <Typography sx={{ width: 20, color: "text.secondary" }}>{index + 1}</Typography>

@@ -1,15 +1,14 @@
 "use client";
 
-import { Chip, Grid, LinearProgress, MenuItem, Stack, TextField, Typography } from "@mui/material";
+import { Chip, Grid, LinearProgress, MenuItem, Stack, TextField, Typography, useTheme } from "@mui/material";
 import { BarChart } from "../common/bar-chart";
 import { ListControls } from "../common/list-controls";
 import { PlayerAvatar } from "../common/player-avatar";
 import { SectionCard } from "../common/section-card";
 
 const SORT_OPTIONS = [
-  { label: "Total score", value: "total_score" },
-  { label: "Win rate", value: "win_pct" },
   { label: "Wins", value: "total_wins" },
+  { label: "Win rate", value: "win_pct" },
   { label: "Games", value: "total_games" },
   { label: "Username", value: "username" },
 ];
@@ -29,26 +28,35 @@ export function LeaderboardPage({
   onChangeSortBy,
   onChangeSortOrder,
 }) {
+  const theme = useTheme();
   const labels = chartItems.map((item) => item.username);
+  const selectedGame = gameTypes.find((gameType) => gameType.game_type_id === selectedGameTypeId);
 
   return (
     <Grid container spacing={2}>
       <Grid item xs={12} lg={7}>
-        <SectionCard title="Overall leaderboard">
+        <SectionCard title={selectedGame ? `${selectedGame.name} leaderboard` : "Leaderboard"}>
           <Stack spacing={2.5}>
-            <TextField
-              select
-              label="Game"
-              value={selectedGameTypeId}
-              onChange={(event) => onChangeGameTypeId(event.target.value)}
-              sx={{ maxWidth: 280 }}
-            >
-              {gameTypes.map((gameType) => (
-                <MenuItem key={gameType.game_type_id} value={gameType.game_type_id}>
-                  {gameType.name}
-                </MenuItem>
-              ))}
-            </TextField>
+            <Stack direction={{ xs: "column", md: "row" }} spacing={2} justifyContent="space-between">
+              <TextField
+                select
+                label="Game"
+                value={selectedGameTypeId}
+                onChange={(event) => onChangeGameTypeId(event.target.value)}
+                sx={{ maxWidth: 280 }}
+              >
+                {gameTypes.map((gameType) => (
+                  <MenuItem key={gameType.game_type_id} value={gameType.game_type_id}>
+                    {gameType.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+              {selectedGame ? (
+                <Typography color="text.secondary" sx={{ maxWidth: 360 }}>
+                  Rankings are based on wins, win rate, and games played for this game type.
+                </Typography>
+              ) : null}
+            </Stack>
             <ListControls
               page={pagination.page}
               totalPages={pagination.totalPages}
@@ -81,13 +89,17 @@ export function LeaderboardPage({
                     <LinearProgress
                       variant="determinate"
                       value={Math.min(100, item.win_pct)}
-                      sx={{ height: 8 }}
+                      sx={{
+                        height: 8,
+                        bgcolor:
+                          theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)",
+                      }}
                     />
                   </Stack>
                   <Stack alignItems="flex-end">
-                    <Typography fontWeight={700}>{item.total_score}</Typography>
+                    <Typography fontWeight={700}>{item.total_wins} wins</Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {item.total_wins} wins
+                      {item.total_games} games
                     </Typography>
                   </Stack>
                   <Chip
