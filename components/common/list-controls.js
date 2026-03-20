@@ -85,6 +85,7 @@ export function ListControls({
           page={page}
           count={Math.max(totalPages, 1)}
           color="primary"
+          shape="rounded"
           onChange={(_, value) => onChangePage(value)}
         />
       </Stack>

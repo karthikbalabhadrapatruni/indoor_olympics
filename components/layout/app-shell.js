@@ -5,17 +5,23 @@ import SportsEsportsOutlinedIcon from "@mui/icons-material/SportsEsportsOutlined
 import LeaderboardOutlinedIcon from "@mui/icons-material/LeaderboardOutlined";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import ExtensionOutlinedIcon from "@mui/icons-material/ExtensionOutlined";
+import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
+import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
 import {
+  alpha,
   Avatar,
   Box,
   Drawer,
   FormControl,
+  IconButton,
   MenuItem,
   Paper,
   Select,
   Stack,
   Typography,
+  useTheme,
 } from "@mui/material";
+import { useAppColorMode } from "../providers/app-theme-provider";
 
 const ICONS = {
   dashboard: DashboardOutlinedIcon,
@@ -26,12 +32,18 @@ const ICONS = {
 };
 
 export function AppShell({ navItems, activePage, onChangePage, title, description, children, sessionUser, me }) {
+  const theme = useTheme();
+  const { mode, toggleColorMode } = useAppColorMode();
+  const isDark = mode === "dark";
+
   return (
     <Box
       sx={{
         minHeight: "100vh",
         background:
-          "radial-gradient(circle at top right, rgba(36,87,166,0.10), transparent 24%), radial-gradient(circle at top left, rgba(11,122,117,0.08), transparent 18%), #F5F7FB",
+          theme.palette.mode === "dark"
+            ? "radial-gradient(circle at top right, rgba(139,184,255,0.16), transparent 24%), radial-gradient(circle at top left, rgba(111,215,203,0.12), transparent 18%), #0D1320"
+            : "radial-gradient(circle at top right, rgba(36,87,166,0.10), transparent 24%), radial-gradient(circle at top left, rgba(11,122,117,0.08), transparent 18%), #EEF2F8",
       }}
     >
       <Stack direction={{ xs: "column", md: "row" }} alignItems="stretch">
@@ -43,10 +55,11 @@ export function AppShell({ navItems, activePage, onChangePage, title, descriptio
             flexShrink: 0,
             "& .MuiDrawer-paper": {
               width: 250,
-              borderRight: "1px solid rgba(15, 23, 42, 0.06)",
+              borderRight: `1px solid ${theme.palette.divider}`,
               p: 2.25,
-              background:
-                "linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.78))",
+              background: isDark
+                ? "linear-gradient(180deg, rgba(18,26,42,0.94), rgba(14,20,32,0.88))"
+                : "linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.8))",
               backdropFilter: "blur(14px)",
             },
           }}
@@ -61,8 +74,10 @@ export function AppShell({ navItems, activePage, onChangePage, title, descriptio
               elevation={0}
               sx={{
                 p: 2,
-                borderRadius: 4,
-                background: "linear-gradient(155deg, rgba(36,87,166,0.10), rgba(11,122,117,0.12))",
+                borderRadius: 3,
+                background: isDark
+                  ? "linear-gradient(155deg, rgba(139,184,255,0.14), rgba(111,215,203,0.12))"
+                  : "linear-gradient(155deg, rgba(36,87,166,0.10), rgba(11,122,117,0.12))",
               }}
             >
               <Stack direction="row" spacing={1.5} alignItems="center">
@@ -91,11 +106,14 @@ export function AppShell({ navItems, activePage, onChangePage, title, descriptio
                     gap: 1.5,
                     width: "100%",
                     border: 0,
-                    borderRadius: 3,
+                    borderRadius: 2.5,
                     px: 1.5,
                     py: 1.25,
                     cursor: "pointer",
-                    bgcolor: activePage === item.id ? "rgba(36,87,166,0.12)" : "transparent",
+                    bgcolor:
+                      activePage === item.id
+                        ? alpha(theme.palette.primary.main, theme.palette.mode === "dark" ? 0.22 : 0.12)
+                        : "transparent",
                     color: activePage === item.id ? "primary.main" : "text.secondary",
                     textAlign: "left",
                   }}
@@ -120,6 +138,30 @@ export function AppShell({ navItems, activePage, onChangePage, title, descriptio
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1280, mx: "auto" }}>
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems={{ xs: "flex-start", md: "center" }}
+              spacing={2}
+              sx={{ mb: 3 }}
+            >
+              <Stack spacing={0.5}>
+                <Typography variant="h4">{title}</Typography>
+                <Typography color="text.secondary">{description}</Typography>
+              </Stack>
+              <IconButton
+                onClick={toggleColorMode}
+                color="primary"
+                sx={{
+                  borderRadius: 2.5,
+                  border: `1px solid ${theme.palette.divider}`,
+                  bgcolor: alpha(theme.palette.background.paper, theme.palette.mode === "dark" ? 0.72 : 0.9),
+                }}
+              >
+                {isDark ? <LightModeRoundedIcon /> : <DarkModeRoundedIcon />}
+              </IconButton>
+            </Stack>
+
             <FormControl fullWidth sx={{ display: { xs: "block", md: "none" }, mb: 2 }}>
               <Select value={activePage} onChange={(event) => onChangePage(event.target.value)}>
                 {navItems.map((item) => (
@@ -129,11 +171,6 @@ export function AppShell({ navItems, activePage, onChangePage, title, descriptio
                 ))}
               </Select>
             </FormControl>
-
-            <Stack spacing={0.5} sx={{ mb: 3 }}>
-              <Typography variant="h4">{title}</Typography>
-              <Typography color="text.secondary">{description}</Typography>
-            </Stack>
 
             {children}
           </Box>

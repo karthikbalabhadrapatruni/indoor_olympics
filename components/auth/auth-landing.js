@@ -1,10 +1,13 @@
 "use client";
 
 import GoogleIcon from "@mui/icons-material/Google";
-import { Alert, Box, Button, Card, Stack, Typography } from "@mui/material";
+import { Alert, Box, Button, Card, Stack, Typography, useTheme } from "@mui/material";
 import { signIn } from "next-auth/react";
 
 export function AuthLanding({ authConfigured }) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
+
   return (
     <Box
       sx={{
@@ -13,8 +16,9 @@ export function AuthLanding({ authConfigured }) {
         alignItems: "center",
         justifyContent: "center",
         px: 2,
-        background:
-          "radial-gradient(circle at top, rgba(34,85,164,0.18), transparent 30%), linear-gradient(180deg, #0B1220 0%, #111C31 100%)",
+        background: isDark
+          ? "radial-gradient(circle at top, rgba(139,184,255,0.18), transparent 30%), linear-gradient(180deg, #0D1320 0%, #121A2A 100%)"
+          : "radial-gradient(circle at top, rgba(34,85,164,0.14), transparent 28%), linear-gradient(180deg, #F7FAFF 0%, #EEF2F8 100%)",
       }}
     >
       <Card
@@ -22,7 +26,7 @@ export function AuthLanding({ authConfigured }) {
           width: "100%",
           maxWidth: 460,
           p: { xs: 3, md: 4 },
-          borderRadius: 6,
+          borderRadius: 3,
           textAlign: "center",
         }}
       >
@@ -46,7 +50,7 @@ export function AuthLanding({ authConfigured }) {
             size="large"
             disabled={!authConfigured}
             onClick={() => signIn("google")}
-            sx={{ px: 3, py: 1.4, borderRadius: 999 }}
+            sx={{ px: 3, py: 1.4, borderRadius: 2.5 }}
           >
             Continue with Google
           </Button>
