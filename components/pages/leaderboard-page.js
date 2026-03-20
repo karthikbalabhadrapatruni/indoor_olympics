@@ -2,22 +2,58 @@
 
 import { Chip, Grid, LinearProgress, Stack, Typography } from "@mui/material";
 import { BarChart } from "../common/bar-chart";
+import { ListControls } from "../common/list-controls";
 import { PlayerAvatar } from "../common/player-avatar";
 import { SectionCard } from "../common/section-card";
 
-export function LeaderboardPage({ data, paletteMap }) {
-  const labels = data.rankings.map((item) => item.username);
+const SORT_OPTIONS = [
+  { label: "Total score", value: "total_score" },
+  { label: "Win rate", value: "win_pct" },
+  { label: "Wins", value: "total_wins" },
+  { label: "Games", value: "total_games" },
+  { label: "Username", value: "username" },
+];
+
+export function LeaderboardPage({
+  items,
+  pagination,
+  sorting,
+  chartItems,
+  userMap,
+  paletteMap,
+  onChangePage,
+  onChangePageSize,
+  onChangeSortBy,
+  onChangeSortOrder,
+}) {
+  const labels = chartItems.map((item) => item.username);
 
   return (
     <Grid container spacing={2}>
       <Grid item xs={12} lg={7}>
         <SectionCard title="Overall leaderboard">
-          <Stack spacing={2}>
-            {data.rankings.map((item, index) => {
-              const user = data.users.find((entry) => entry.user_id === item.user_id);
+          <Stack spacing={2.5}>
+            <ListControls
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              pageSize={pagination.pageSize}
+              sortBy={sorting.sortBy}
+              sortOrder={sorting.sortOrder}
+              sortOptions={SORT_OPTIONS}
+              total={pagination.total}
+              onChangePage={onChangePage}
+              onChangePageSize={onChangePageSize}
+              onChangeSortBy={onChangeSortBy}
+              onChangeSortOrder={onChangeSortOrder}
+            />
+
+            {items.map((item, index) => {
+              const user = userMap[item.user_id];
               return (
                 <Stack key={item.user_id} direction="row" spacing={2} alignItems="center">
-                  <Typography sx={{ width: 18, color: "text.secondary" }}>{index + 1}</Typography>
+                  <Typography sx={{ width: 18, color: "text.secondary" }}>
+                    {(pagination.page - 1) * pagination.pageSize + index + 1}
+                  </Typography>
                   <PlayerAvatar
                     uid={item.user_id}
                     name={item.username}
@@ -56,7 +92,7 @@ export function LeaderboardPage({ data, paletteMap }) {
               labels,
               datasets: [
                 {
-                  data: data.rankings.map((item) => item.win_pct),
+                  data: chartItems.map((item) => item.win_pct),
                   backgroundColor: "#2457A6",
                   borderRadius: 8,
                 },

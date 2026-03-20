@@ -22,8 +22,15 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { ListControls } from "../common/list-controls";
 import { PlayerAvatar } from "../common/player-avatar";
 import { SectionCard } from "../common/section-card";
+
+const SORT_OPTIONS = [
+  { label: "Most recent", value: "played_at" },
+  { label: "Title", value: "title" },
+  { label: "Game ID", value: "game_id" },
+];
 
 export function GamesWorkspacePage({
   data,
@@ -43,15 +50,14 @@ export function GamesWorkspacePage({
   onCloseScoreDialog,
   onChangeScoreEntry,
   onSubmitScores,
+  sessions,
+  sessionsPagination,
+  sessionsSorting,
+  onChangeSessionsPage,
+  onChangeSessionsPageSize,
+  onChangeSessionsSortBy,
+  onChangeSessionsSortOrder,
 }) {
-  const filteredSessions =
-    gameTypeFilter === "all"
-      ? data.sessions
-      : data.sessions.filter((session) => {
-          const gameType = data.gameTypes.find((entry) => entry.name === gameTypeFilter);
-          return session.game_type_id === gameType?.game_type_id;
-        });
-
   const addPlayersOptions = addPlayersState.game
     ? data.users.filter(
         (user) => !addPlayersState.game.members.some((member) => member.user_id === user.user_id)
@@ -101,33 +107,46 @@ export function GamesWorkspacePage({
           </Grid>
           <Grid item xs={12} lg={8}>
             <SectionCard title="Your rooms">
-              <Stack direction="row" spacing={1} flexWrap="wrap">
-                <Chip
-                  label="All"
-                  color={gameTypeFilter === "all" ? "primary" : "default"}
-                  variant={gameTypeFilter === "all" ? "filled" : "outlined"}
-                  onClick={() => onChangeGameTypeFilter("all")}
-                />
-                {data.gameTypes.map((item) => (
+              <Stack spacing={2}>
+                <Stack direction="row" spacing={1} flexWrap="wrap">
                   <Chip
-                    key={item.game_type_id}
-                    label={item.name}
-                    color={gameTypeFilter === item.name ? "primary" : "default"}
-                    variant={gameTypeFilter === item.name ? "filled" : "outlined"}
-                    onClick={() => onChangeGameTypeFilter(item.name)}
+                    label="All"
+                    color={gameTypeFilter === "all" ? "primary" : "default"}
+                    variant={gameTypeFilter === "all" ? "filled" : "outlined"}
+                    onClick={() => onChangeGameTypeFilter("all")}
                   />
-                ))}
+                  {data.gameTypes.map((item) => (
+                    <Chip
+                      key={item.game_type_id}
+                      label={item.name}
+                      color={gameTypeFilter === item.name ? "primary" : "default"}
+                      variant={gameTypeFilter === item.name ? "filled" : "outlined"}
+                      onClick={() => onChangeGameTypeFilter(item.name)}
+                    />
+                  ))}
+                </Stack>
+                <ListControls
+                  page={sessionsPagination.page}
+                  totalPages={sessionsPagination.totalPages}
+                  pageSize={sessionsPagination.pageSize}
+                  sortBy={sessionsSorting.sortBy}
+                  sortOrder={sessionsSorting.sortOrder}
+                  sortOptions={SORT_OPTIONS}
+                  total={sessionsPagination.total}
+                  onChangePage={onChangeSessionsPage}
+                  onChangePageSize={onChangeSessionsPageSize}
+                  onChangeSortBy={onChangeSessionsSortBy}
+                  onChangeSortOrder={onChangeSessionsSortOrder}
+                />
               </Stack>
             </SectionCard>
           </Grid>
         </Grid>
 
         <Grid container spacing={2}>
-          {filteredSessions.map((session) => {
+          {sessions.map((session) => {
             const gameType = data.gameTypes.find((entry) => entry.game_type_id === session.game_type_id);
-            const gameScores = data.scores
-              .filter((entry) => entry.game_id === session.game_id)
-              .sort((a, b) => b.score - a.score);
+            const gameScores = session.recent_scores || [];
 
             return (
               <Grid item xs={12} xl={6} key={session.game_id}>

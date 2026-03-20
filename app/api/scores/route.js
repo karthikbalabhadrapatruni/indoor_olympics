@@ -9,6 +9,7 @@ import {
 import { error, json } from "../../../lib/http";
 import { requireSessionUser } from "../../../lib/server-auth";
 import { findUserByEmail } from "../../../lib/user-service";
+import { acquireScoreWriteLock, releaseScoreWriteLock } from "../../../lib/write-lock";
 
 export const runtime = "nodejs";
 
@@ -32,6 +33,8 @@ export async function GET() {
 }
 
 export async function POST(request) {
+  let lockToken = null;
+
   try {
     const sessionUser = await requireSessionUser();
     if (!sessionUser) {
@@ -45,6 +48,14 @@ export async function POST(request) {
     const { game_id, scores } = await request.json();
     if (!game_id || !Array.isArray(scores) || scores.length === 0) {
       return error("game_id and scores[] required", 400);
+    }
+
+    lockToken = acquireScoreWriteLock();
+    if (!lockToken) {
+      return error(
+        "Another score submission is already being processed. Please retry in a few seconds.",
+        409
+      );
     }
 
     const sheets = getSheetsClient();
@@ -90,5 +101,9 @@ export async function POST(request) {
   } catch (err) {
     console.error(err);
     return error(err.message);
+  } finally {
+    if (lockToken) {
+      releaseScoreWriteLock(lockToken);
+    }
   }
 }

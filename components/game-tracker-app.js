@@ -29,7 +29,20 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
   const [createGameForm, setCreateGameForm] = useState({ title: "", gameTypeId: "" });
   const [addPlayersState, setAddPlayersState] = useState({ game: null, userIds: [] });
   const [scoreDialogState, setScoreDialogState] = useState({ game: null, entries: [] });
+  const [listRefreshKey, setListRefreshKey] = useState(0);
   const [profileData, setProfileData] = useState(null);
+  const [leaderboardState, setLeaderboardState] = useState({
+    items: [],
+    pagination: { page: 1, pageSize: 10, total: 0, totalPages: 1 },
+    sort: { sortBy: "total_score", sortOrder: "desc" },
+    loading: false,
+  });
+  const [gamesState, setGamesState] = useState({
+    items: [],
+    pagination: { page: 1, pageSize: 6, total: 0, totalPages: 1 },
+    sort: { sortBy: "played_at", sortOrder: "desc" },
+    loading: false,
+  });
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [editUsername, setEditUsername] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
@@ -42,6 +55,10 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
   const activeMeta = useMemo(() => {
     return NAV_ITEMS.find((item) => item.id === activePage) || NAV_ITEMS[0];
   }, [activePage]);
+  const userMap = useMemo(
+    () => Object.fromEntries(data.users.map((user) => [user.user_id, user])),
+    [data.users]
+  );
 
   function showToast(message, severity = "success") {
     setToast({ message, severity });
@@ -116,6 +133,103 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
     };
   }, [data.me?.user_id]);
 
+  useEffect(() => {
+    if (!(sessionUser && authState.onboarded)) {
+      return;
+    }
+
+    let cancelled = false;
+    async function loadLeaderboard() {
+      setLeaderboardState((current) => ({ ...current, loading: true }));
+      try {
+        const params = new URLSearchParams({
+          type: "rankings",
+          page: String(leaderboardState.pagination.page),
+          pageSize: String(leaderboardState.pagination.pageSize),
+          sortBy: leaderboardState.sort.sortBy,
+          sortOrder: leaderboardState.sort.sortOrder,
+        });
+        const result = await apiRequest(`/api/analytics?${params.toString()}`);
+        if (!cancelled) {
+          setLeaderboardState((current) => ({
+            ...current,
+            items: result.items,
+            pagination: result.pagination,
+            sort: result.sort,
+            loading: false,
+          }));
+        }
+      } catch (requestError) {
+        if (!cancelled) {
+          setLeaderboardState((current) => ({ ...current, loading: false }));
+          showToast(requestError.message, "error");
+        }
+      }
+    }
+
+    loadLeaderboard();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    sessionUser,
+    authState.onboarded,
+    leaderboardState.pagination.page,
+    leaderboardState.pagination.pageSize,
+    leaderboardState.sort.sortBy,
+    leaderboardState.sort.sortOrder,
+    listRefreshKey,
+  ]);
+
+  useEffect(() => {
+    if (!(sessionUser && authState.onboarded)) {
+      return;
+    }
+
+    let cancelled = false;
+    async function loadGames() {
+      setGamesState((current) => ({ ...current, loading: true }));
+      try {
+        const params = new URLSearchParams({
+          page: String(gamesState.pagination.page),
+          pageSize: String(gamesState.pagination.pageSize),
+          sortBy: gamesState.sort.sortBy,
+          sortOrder: gamesState.sort.sortOrder,
+          gameType: gameTypeFilter,
+        });
+        const result = await apiRequest(`/api/game-sessions?${params.toString()}`);
+        if (!cancelled) {
+          setGamesState((current) => ({
+            ...current,
+            items: result.items,
+            pagination: result.pagination,
+            sort: result.sort,
+            loading: false,
+          }));
+        }
+      } catch (requestError) {
+        if (!cancelled) {
+          setGamesState((current) => ({ ...current, loading: false }));
+          showToast(requestError.message, "error");
+        }
+      }
+    }
+
+    loadGames();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    sessionUser,
+    authState.onboarded,
+    gamesState.pagination.page,
+    gamesState.pagination.pageSize,
+    gamesState.sort.sortBy,
+    gamesState.sort.sortOrder,
+    gameTypeFilter,
+    listRefreshKey,
+  ]);
+
   async function handleOnboarding() {
     if (!username.trim()) {
       setAuthState((current) => ({ ...current, error: "Choose a username to continue" }));
@@ -183,6 +297,8 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
         },
       });
       await refresh();
+      setListRefreshKey((current) => current + 1);
+      setGamesState((current) => ({ ...current, pagination: { ...current.pagination, page: 1 } }));
       setCreateGameForm((current) => ({ ...current, title: "" }));
       setActivePage("games");
       showToast("Game created");
@@ -210,6 +326,8 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
         },
       });
       await refresh();
+      setListRefreshKey((current) => current + 1);
+      setGamesState((current) => ({ ...current, pagination: { ...current.pagination, page: 1 } }));
       setAddPlayersState({ game: null, userIds: [] });
       showToast("Players added to game");
     } catch (requestError) {
@@ -247,6 +365,7 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
         },
       });
       await refresh();
+      setListRefreshKey((current) => current + 1);
       setScoreDialogState({ game: null, entries: [] });
       showToast("Scores saved");
     } catch (requestError) {
@@ -328,10 +447,71 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
               }))
             }
             onSubmitScores={submitScores}
+            sessions={gamesState.items}
+            sessionsPagination={gamesState.pagination}
+            sessionsSorting={gamesState.sort}
+            onChangeSessionsPage={(page) =>
+              setGamesState((current) => ({ ...current, pagination: { ...current.pagination, page } }))
+            }
+            onChangeSessionsPageSize={(pageSize) =>
+              setGamesState((current) => ({
+                ...current,
+                pagination: { ...current.pagination, page: 1, pageSize },
+              }))
+            }
+            onChangeSessionsSortBy={(sortBy) =>
+              setGamesState((current) => ({
+                ...current,
+                sort: { ...current.sort, sortBy },
+                pagination: { ...current.pagination, page: 1 },
+              }))
+            }
+            onChangeSessionsSortOrder={(sortOrder) =>
+              setGamesState((current) => ({
+                ...current,
+                sort: { ...current.sort, sortOrder },
+                pagination: { ...current.pagination, page: 1 },
+              }))
+            }
           />
         );
       case "leaderboard":
-        return <LeaderboardPage data={data} paletteMap={paletteMap} />;
+        return (
+          <LeaderboardPage
+            items={leaderboardState.items}
+            pagination={leaderboardState.pagination}
+            sorting={leaderboardState.sort}
+            chartItems={data.rankings.slice(0, 8)}
+            userMap={userMap}
+            paletteMap={paletteMap}
+            onChangePage={(page) =>
+              setLeaderboardState((current) => ({
+                ...current,
+                pagination: { ...current.pagination, page },
+              }))
+            }
+            onChangePageSize={(pageSize) =>
+              setLeaderboardState((current) => ({
+                ...current,
+                pagination: { ...current.pagination, page: 1, pageSize },
+              }))
+            }
+            onChangeSortBy={(sortBy) =>
+              setLeaderboardState((current) => ({
+                ...current,
+                sort: { ...current.sort, sortBy },
+                pagination: { ...current.pagination, page: 1 },
+              }))
+            }
+            onChangeSortOrder={(sortOrder) =>
+              setLeaderboardState((current) => ({
+                ...current,
+                sort: { ...current.sort, sortOrder },
+                pagination: { ...current.pagination, page: 1 },
+              }))
+            }
+          />
+        );
       case "profile":
         return (
           <ProfileHubPage

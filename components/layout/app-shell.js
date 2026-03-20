@@ -54,9 +54,6 @@ export function AppShell({ navItems, activePage, onChangePage, title, descriptio
               <Typography variant="h6">
                 Game<span style={{ color: "#2457A6" }}>Tracker</span>
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Competitive play, beautifully organized
-              </Typography>
             </Box>
             <Paper
               elevation={0}
@@ -73,9 +70,6 @@ export function AppShell({ navItems, activePage, onChangePage, title, descriptio
                 <Box sx={{ minWidth: 0 }}>
                   <Typography fontWeight={700} noWrap>
                     {me?.username || sessionUser?.name || "Player"}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" noWrap>
-                    {sessionUser?.email}
                   </Typography>
                 </Box>
               </Stack>

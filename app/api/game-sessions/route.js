@@ -1,17 +1,13 @@
-import {
-  getSheetsClient,
-  readSheet,
-  rowToGameSession,
-  safeReadSheet,
-} from "../../../lib/sheets";
 import { error, json } from "../../../lib/http";
 import { createGame } from "../../../lib/game-service";
 import { requireSessionUser } from "../../../lib/server-auth";
 import { findUserByEmail } from "../../../lib/user-service";
+import { readAllData } from "../../../lib/game-tracker-data";
+import { compareValues, paginateItems, parsePositiveInt, parseSortOrder } from "../../../lib/pagination";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(request) {
   try {
     const sessionUser = await requireSessionUser();
     if (!sessionUser) {
@@ -23,16 +19,65 @@ export async function GET() {
       return error("Complete onboarding first", 400);
     }
 
-    const sheets = getSheetsClient();
-    const rows = await readSheet(sheets, "game_sessions!A2:E");
-    const accessRows = await safeReadSheet(sheets, "game_access!A2:E");
-    const allowedIds = new Set(accessRows.filter((row) => row[2] === currentUser.user.user_id).map((row) => row[1]));
-    return json(
-      rows.map(rowToGameSession).map((session) => ({
+    const { searchParams } = new URL(request.url);
+    const page = parsePositiveInt(searchParams?.get("page"), 1);
+    const pageSize = Math.min(parsePositiveInt(searchParams?.get("pageSize"), 8), 24);
+    const sortOrder = parseSortOrder(searchParams?.get("sortOrder"), "desc");
+    const sortBy = searchParams?.get("sortBy") || "played_at";
+    const gameTypeName = searchParams?.get("gameType") || "all";
+
+    const data = await readAllData();
+    const allowedIds = new Set(
+      data.access.filter((entry) => entry.user_id === currentUser.user.user_id).map((entry) => entry.game_id)
+    );
+
+    const allowedSortFields = new Set(["played_at", "title", "game_id"]);
+    const safeSortBy = allowedSortFields.has(sortBy) ? sortBy : "played_at";
+
+    const enriched = data.sessions
+      .filter((session) => {
+        if (gameTypeName === "all") return true;
+        const gameType = data.gameTypes.find((entry) => entry.game_type_id === session.game_type_id);
+        return gameType?.name === gameTypeName;
+      })
+      .map((session) => ({
         ...session,
         can_manage: session.owner_user_id === currentUser.user.user_id || allowedIds.has(session.game_id),
+        members: data.access
+          .filter((entry) => entry.game_id === session.game_id)
+          .map((entry) => {
+            const user = data.users.find((item) => item.user_id === entry.user_id);
+            return {
+              ...entry,
+              username: user?.username || entry.user_id,
+              photo_url: user?.photo_url || user?.avatar_url || "",
+            };
+          }),
+        recent_scores: data.scores
+          .filter((entry) => entry.game_id === session.game_id)
+          .sort((left, right) => right.score - left.score)
+          .slice(0, 4)
+          .map((entry) => {
+            const user = data.users.find((item) => item.user_id === entry.user_id);
+            return {
+              ...entry,
+              username: user?.username || entry.user_id,
+              photo_url: user?.photo_url || user?.avatar_url || "",
+            };
+          }),
       }))
-    );
+      .sort((left, right) => {
+        const primary = compareValues(left[safeSortBy], right[safeSortBy], sortOrder);
+        if (primary !== 0) return primary;
+        return compareValues(left.title, right.title, "asc");
+      });
+
+    const paged = paginateItems(enriched, page, pageSize);
+    return json({
+      items: paged.items,
+      pagination: paged.pagination,
+      sort: { sortBy: safeSortBy, sortOrder },
+    });
   } catch (err) {
     console.error(err);
     return error(err.message);
