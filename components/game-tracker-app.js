@@ -30,6 +30,10 @@ export default function GameTrackerApp({ sessionUser }) {
   const [addPlayersState, setAddPlayersState] = useState({ game: null, userIds: [] });
   const [scoreDialogState, setScoreDialogState] = useState({ game: null, entries: [] });
   const [profileData, setProfileData] = useState(null);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [editUsername, setEditUsername] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState("");
   const [uploadingProfilePhoto, setUploadingProfilePhoto] = useState(false);
   const { data, loading, error, paletteMap, refresh } = useGameTrackerData(
     Boolean(sessionUser && authState.onboarded)
@@ -62,6 +66,7 @@ export default function GameTrackerApp({ sessionUser }) {
             error: "",
           });
           setUsername(result.appUser?.username || "");
+          setEditUsername(result.appUser?.username || "");
         }
       } catch (requestError) {
         if (!cancelled) {
@@ -130,6 +135,32 @@ export default function GameTrackerApp({ sessionUser }) {
       setAuthState((current) => ({ ...current, error: requestError.message }));
     } finally {
       setUsernameSaving(false);
+    }
+  }
+
+  async function handleSaveProfile() {
+    if (!editUsername.trim()) {
+      setProfileError("Username cannot be empty");
+      return;
+    }
+
+    try {
+      setSavingProfile(true);
+      setProfileError("");
+      const user = await apiRequest("/api/me/profile", {
+        method: "POST",
+        body: { username: editUsername.trim() },
+      });
+      setAuthState((current) => ({ ...current, appUser: user, error: "" }));
+      setUsername(user.username || "");
+      setEditUsername(user.username || "");
+      await refresh();
+      setEditProfileOpen(false);
+      showToast("Profile updated");
+    } catch (requestError) {
+      setProfileError(requestError.message);
+    } finally {
+      setSavingProfile(false);
     }
   }
 
@@ -225,12 +256,14 @@ export default function GameTrackerApp({ sessionUser }) {
 
   async function handleProfilePhoto(event) {
     const file = event.target.files?.[0];
+    event.target.value = "";
     if (!file || !data.me?.user_id) {
       return;
     }
 
     try {
       setUploadingProfilePhoto(true);
+      setProfileError("");
       const photo = await readPhotoFile(file);
       await apiRequest("/api/upload-photo", {
         method: "POST",
@@ -244,6 +277,7 @@ export default function GameTrackerApp({ sessionUser }) {
       await refresh();
       showToast("Profile photo updated");
     } catch (requestError) {
+      setProfileError(requestError.message);
       showToast(requestError.message, "error");
     } finally {
       setUploadingProfilePhoto(false);
@@ -304,7 +338,22 @@ export default function GameTrackerApp({ sessionUser }) {
             sessionUser={sessionUser}
             me={data.me}
             profileData={profileData}
+            editOpen={editProfileOpen}
+            editUsername={editUsername}
+            savingProfile={savingProfile}
+            profileError={profileError}
             uploadingProfilePhoto={uploadingProfilePhoto}
+            onOpenEdit={() => {
+              setEditUsername(data.me?.username || authState.appUser?.username || "");
+              setProfileError("");
+              setEditProfileOpen(true);
+            }}
+            onCloseEdit={() => {
+              setProfileError("");
+              setEditProfileOpen(false);
+            }}
+            onChangeEditUsername={setEditUsername}
+            onSaveProfile={handleSaveProfile}
             onChangePhoto={handleProfilePhoto}
           />
         );
