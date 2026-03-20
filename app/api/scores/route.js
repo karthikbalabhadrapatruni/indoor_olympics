@@ -59,10 +59,13 @@ export async function POST(request) {
     }
 
     const sheets = getSheetsClient();
-    const sessionRows = await readSheet(sheets, "game_sessions!A2:F");
+    const sessionRows = await readSheet(sheets, "game_sessions!A2:H");
     const session = sessionRows.find((row) => row[0] === game_id);
     if (!session) {
       return error(`game_id '${game_id}' not found`, 404);
+    }
+    if ((session[6] || "active") === "ended") {
+      return error("this game has ended and can no longer accept scores", 409);
     }
     const accessRows = await safeReadSheet(sheets, "game_access!A2:E");
     const allowed =
@@ -80,7 +83,7 @@ export async function POST(request) {
       .map(rowToScore)
       .filter((entry) => entry.game_id === game_id);
     const nextRoundNumber =
-      existingScores.reduce((maxRound, entry) => Math.max(maxRound, entry.round_number || 1), 0) + 1;
+      existingScores.reduce((maxRound, entry) => Math.max(maxRound, entry.round_number || 0), 0) + 1;
     const winningScore =
       scoringMode === "lowest"
         ? Math.min(...scores.map((entry) => Number(entry.score)))

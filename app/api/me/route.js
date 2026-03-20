@@ -19,7 +19,7 @@ export async function GET() {
         image: sessionUser.image || "",
       },
       appUser: existing?.user || null,
-      onboarded: Boolean(existing?.user?.username),
+      onboarded: Boolean(existing?.user?.user_id),
     });
   } catch (err) {
     console.error(err);

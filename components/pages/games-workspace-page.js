@@ -1,6 +1,8 @@
 "use client";
 
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import EmojiEventsRoundedIcon from "@mui/icons-material/EmojiEventsRounded";
+import FlagRoundedIcon from "@mui/icons-material/FlagRounded";
 import GroupAddRoundedIcon from "@mui/icons-material/GroupAddRounded";
 import ScoreboardRoundedIcon from "@mui/icons-material/ScoreboardRounded";
 import {
@@ -50,6 +52,10 @@ export function GamesWorkspacePage({
   onCloseScoreDialog,
   onChangeScoreEntry,
   onSubmitScores,
+  sessionLeaderboardState,
+  onOpenSessionLeaderboard,
+  onCloseSessionLeaderboard,
+  onEndGame,
   sessions,
   sessionsPagination,
   sessionsSorting,
@@ -67,7 +73,7 @@ export function GamesWorkspacePage({
   function groupScoresByRound(scores) {
     const grouped = new Map();
     for (const score of scores) {
-      const roundNumber = score.round_number || 1;
+      const roundNumber = score.round_number || 0;
       if (!grouped.has(roundNumber)) {
         grouped.set(roundNumber, []);
       }
@@ -78,7 +84,7 @@ export function GamesWorkspacePage({
       .sort((left, right) => right[0] - left[0])
       .map(([roundNumber, items]) => ({
         roundNumber,
-        items: [...items].sort((left, right) => right.score - left.score),
+        items,
       }));
   }
 
@@ -91,6 +97,7 @@ export function GamesWorkspacePage({
               sx={{
                 p: 3,
                 height: "100%",
+                borderRadius: 4,
                 background: "linear-gradient(160deg, rgba(36,87,166,0.08), rgba(11,122,117,0.12))",
               }}
             >
@@ -135,22 +142,24 @@ export function GamesWorkspacePage({
           <Grid item xs={12} lg={8}>
             <SectionCard title="Your rooms">
               <Stack spacing={2}>
-                <Stack direction="row" spacing={1} flexWrap="wrap">
-                  <Chip
-                    label="All"
-                    color={gameTypeFilter === "all" ? "primary" : "default"}
-                    variant={gameTypeFilter === "all" ? "filled" : "outlined"}
-                    onClick={() => onChangeGameTypeFilter("all")}
-                  />
-                  {data.gameTypes.map((item) => (
-                    <Chip
-                      key={item.game_type_id}
-                      label={item.name}
-                      color={gameTypeFilter === item.name ? "primary" : "default"}
-                      variant={gameTypeFilter === item.name ? "filled" : "outlined"}
-                      onClick={() => onChangeGameTypeFilter(item.name)}
-                    />
-                  ))}
+                <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ md: "center" }}>
+                  <TextField
+                    select
+                    label="Game type"
+                    value={gameTypeFilter}
+                    onChange={(event) => onChangeGameTypeFilter(event.target.value)}
+                    sx={{ minWidth: { xs: "100%", md: 240 } }}
+                  >
+                    <MenuItem value="all">All game types</MenuItem>
+                    {data.gameTypes.map((item) => (
+                      <MenuItem key={item.game_type_id} value={item.name}>
+                        {item.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  <Typography color="text.secondary">
+                    Browse every room here and narrow the list only when you need to.
+                  </Typography>
                 </Stack>
                 <ListControls
                   page={sessionsPagination.page}
@@ -173,24 +182,68 @@ export function GamesWorkspacePage({
         <Grid container spacing={2}>
           {sessions.map((session) => {
             const gameType = data.gameTypes.find((entry) => entry.game_type_id === session.game_type_id);
-            const roundGroups = groupScoresByRound(session.recent_scores || []);
+            const scoringMode = gameType?.scoring_mode || "highest";
+            const roundGroups = groupScoresByRound(session.recent_scores || []).map((group) => {
+              const sortedItems = [...group.items].sort((left, right) => {
+                if (Boolean(right.is_winner) !== Boolean(left.is_winner)) {
+                  return Number(right.is_winner) - Number(left.is_winner);
+                }
+                return scoringMode === "lowest" ? left.score - right.score : right.score - left.score;
+              });
+
+              return {
+                ...group,
+                items: sortedItems,
+                winners: sortedItems.filter((item) => item.is_winner),
+              };
+            });
 
             return (
               <Grid item xs={12} xl={6} key={session.game_id}>
-                <Card sx={{ p: 3, height: "100%" }}>
+                <Card sx={{ p: 3, height: "100%", borderRadius: 4 }}>
                   <Stack spacing={2.5}>
                     <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" spacing={2}>
                       <Stack spacing={0.75}>
                         <Typography variant="h5">{session.title}</Typography>
                         <Stack direction="row" spacing={1} flexWrap="wrap">
-                          <Chip label={gameType?.name || "Game"} color="primary" variant="outlined" />
-                          <Chip label={session.game_id} variant="outlined" />
-                          <Chip label={(session.played_at || "").split("T")[0]} variant="outlined" />
-                          <Chip label={session.visibility || "public"} variant="outlined" />
+                          <Chip
+                            label={gameType?.name || "Game"}
+                            color="primary"
+                            variant="outlined"
+                            sx={{ borderRadius: 2 }}
+                          />
+                          <Chip
+                            label={(session.played_at || "").split("T")[0]}
+                            variant="outlined"
+                            sx={{ borderRadius: 2 }}
+                          />
+                          <Chip
+                            label={session.visibility || "public"}
+                            variant="outlined"
+                            sx={{ borderRadius: 2, textTransform: "capitalize" }}
+                          />
+                          <Chip
+                            label={`${session.round_count || 0} rounds`}
+                            variant="outlined"
+                            sx={{ borderRadius: 2 }}
+                          />
+                          <Chip
+                            label={session.status === "ended" ? "Ended" : "Active"}
+                            color={session.status === "ended" ? "default" : "success"}
+                            variant={session.status === "ended" ? "outlined" : "filled"}
+                            sx={{ borderRadius: 2 }}
+                          />
                         </Stack>
                       </Stack>
-                      <Stack direction="row" spacing={1}>
-                        {session.can_manage ? (
+                      <Stack direction="row" spacing={1} flexWrap="wrap" justifyContent="flex-end">
+                        <Button
+                          startIcon={<EmojiEventsRoundedIcon />}
+                          variant="outlined"
+                          onClick={() => onOpenSessionLeaderboard(session)}
+                        >
+                          View leaderboard
+                        </Button>
+                        {session.can_manage && session.status !== "ended" ? (
                           <Button
                             startIcon={<GroupAddRoundedIcon />}
                             variant="outlined"
@@ -199,13 +252,25 @@ export function GamesWorkspacePage({
                             Add players
                           </Button>
                         ) : null}
-                        <Button
-                          startIcon={<ScoreboardRoundedIcon />}
-                          variant="contained"
-                          onClick={() => onOpenScoreDialog(session)}
-                        >
-                          Log scores
-                        </Button>
+                        {session.status !== "ended" ? (
+                          <Button
+                            startIcon={<ScoreboardRoundedIcon />}
+                            variant="contained"
+                            onClick={() => onOpenScoreDialog(session)}
+                          >
+                            Log scores
+                          </Button>
+                        ) : null}
+                        {session.can_manage && session.status !== "ended" ? (
+                          <Button
+                            startIcon={<FlagRoundedIcon />}
+                            color="inherit"
+                            variant="outlined"
+                            onClick={() => onEndGame(session)}
+                          >
+                            End game
+                          </Button>
+                        ) : null}
                       </Stack>
                     </Stack>
 
@@ -228,7 +293,7 @@ export function GamesWorkspacePage({
                             }
                             label={member.username}
                             variant="outlined"
-                            sx={{ pl: 0.5 }}
+                            sx={{ pl: 0.5, borderRadius: 2.5 }}
                           />
                         ))}
                       </Stack>
@@ -238,45 +303,72 @@ export function GamesWorkspacePage({
                       <Typography variant="subtitle2" sx={{ mb: 1 }}>
                         Round logs
                       </Typography>
-                      <Stack spacing={1}>
+                      <Stack spacing={1.5}>
                         {roundGroups.length ? (
                           roundGroups.map((group) => (
-                            <Stack key={`${session.game_id}-round-${group.roundNumber}`} spacing={1}>
-                              <Typography variant="caption" color="text.secondary">
-                                Round {group.roundNumber}
-                              </Typography>
-                              {group.items.map((score) => {
-                                const user = data.users.find((entry) => entry.user_id === score.user_id);
-                                return (
-                                  <Stack
-                                    key={score.score_id}
-                                    direction="row"
-                                    alignItems="center"
-                                    justifyContent="space-between"
-                                    sx={{ p: 1.5, borderRadius: 3, bgcolor: "grey.50" }}
-                                  >
-                                    <Stack direction="row" spacing={1.5} alignItems="center">
-                                      <PlayerAvatar
-                                        uid={score.user_id}
-                                        name={user?.username || score.user_id}
-                                        photoUrl={user?.photo_url || user?.avatar_url}
-                                        paletteMap={paletteMap}
-                                        size={32}
-                                      />
-                                      <Typography fontWeight={700}>{user?.username || score.user_id}</Typography>
-                                    </Stack>
-                                    <Stack direction="row" spacing={1} alignItems="center">
-                                      <Typography fontWeight={700}>{score.score}</Typography>
-                                      <Chip
-                                        label={score.is_winner ? "Winner" : "Played"}
-                                        color={score.is_winner ? "success" : "default"}
-                                        variant={score.is_winner ? "filled" : "outlined"}
-                                      />
-                                    </Stack>
+                            <Card
+                              key={`${session.game_id}-round-${group.roundNumber}`}
+                              variant="outlined"
+                              sx={{ p: 2, borderRadius: 3, bgcolor: "rgba(255,255,255,0.72)" }}
+                            >
+                              <Stack spacing={1.25}>
+                                <Stack
+                                  direction={{ xs: "column", sm: "row" }}
+                                  justifyContent="space-between"
+                                  alignItems={{ xs: "flex-start", sm: "center" }}
+                                  spacing={1}
+                                >
+                                  <Typography variant="subtitle1" fontWeight={700}>
+                                    Round {group.roundNumber}
+                                  </Typography>
+                                  <Stack direction="row" spacing={1} flexWrap="wrap">
+                                    {group.winners.map((winner) => {
+                                      const winnerUser = data.users.find((entry) => entry.user_id === winner.user_id);
+                                      return (
+                                        <Chip
+                                          key={`${winner.score_id}-winner`}
+                                          label={`Winner: ${winnerUser?.username || winner.user_id}`}
+                                          color="success"
+                                          sx={{ borderRadius: 2 }}
+                                        />
+                                      );
+                                    })}
                                   </Stack>
-                                );
-                              })}
-                            </Stack>
+                                </Stack>
+                                {group.items.map((score) => {
+                                  const user = data.users.find((entry) => entry.user_id === score.user_id);
+                                  return (
+                                    <Stack
+                                      key={score.score_id}
+                                      direction="row"
+                                      alignItems="center"
+                                      justifyContent="space-between"
+                                      sx={{ p: 1.5, borderRadius: 3, bgcolor: "grey.50" }}
+                                    >
+                                      <Stack direction="row" spacing={1.5} alignItems="center">
+                                        <PlayerAvatar
+                                          uid={score.user_id}
+                                          name={user?.username || score.user_id}
+                                          photoUrl={user?.photo_url || user?.avatar_url}
+                                          paletteMap={paletteMap}
+                                          size={32}
+                                        />
+                                        <Typography fontWeight={700}>{user?.username || score.user_id}</Typography>
+                                      </Stack>
+                                      <Stack direction="row" spacing={1} alignItems="center">
+                                        <Typography fontWeight={700}>{score.score}</Typography>
+                                        <Chip
+                                          label={score.is_winner ? "Winner" : "Played"}
+                                          color={score.is_winner ? "success" : "default"}
+                                          variant={score.is_winner ? "filled" : "outlined"}
+                                          sx={{ borderRadius: 2 }}
+                                        />
+                                      </Stack>
+                                    </Stack>
+                                  );
+                                })}
+                              </Stack>
+                            </Card>
                           ))
                         ) : (
                           <Typography color="text.secondary">No scores logged for this game yet.</Typography>
@@ -358,6 +450,56 @@ export function GamesWorkspacePage({
           <Button variant="contained" onClick={onSubmitScores}>
             Save scores
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(sessionLeaderboardState.game)}
+        onClose={onCloseSessionLeaderboard}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>{sessionLeaderboardState.game?.title} leaderboard</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            <Typography color="text.secondary">
+              Session totals across all rounds played in this room.
+            </Typography>
+            {(sessionLeaderboardState.game?.session_leaderboard || []).length ? (
+              sessionLeaderboardState.game.session_leaderboard.map((entry, index) => (
+                <Stack
+                  key={`${entry.user_id}-leaderboard`}
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  sx={{ p: 1.5, borderRadius: 2.5, bgcolor: "grey.50" }}
+                >
+                  <Stack direction="row" spacing={1.5} alignItems="center">
+                    <Typography sx={{ width: 20, color: "text.secondary" }}>{index + 1}</Typography>
+                    <PlayerAvatar
+                      uid={entry.user_id}
+                      name={entry.username}
+                      photoUrl={entry.photo_url}
+                      paletteMap={paletteMap}
+                      size={32}
+                    />
+                    <Stack>
+                      <Typography fontWeight={700}>{entry.username}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {entry.rounds_won} rounds won · {entry.rounds_played} rounds played
+                      </Typography>
+                    </Stack>
+                  </Stack>
+                  <Typography fontWeight={800}>{entry.total_score}</Typography>
+                </Stack>
+              ))
+            ) : (
+              <Typography color="text.secondary">No round scores have been logged yet.</Typography>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={onCloseSessionLeaderboard}>Close</Button>
         </DialogActions>
       </Dialog>
     </>

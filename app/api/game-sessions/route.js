@@ -1,5 +1,5 @@
 import { error, json } from "../../../lib/http";
-import { createGame } from "../../../lib/game-service";
+import { createGame, endGame } from "../../../lib/game-service";
 import { requireSessionUser } from "../../../lib/server-auth";
 import { findUserByEmail } from "../../../lib/user-service";
 import { readAllData } from "../../../lib/game-tracker-data";
@@ -77,6 +77,47 @@ export async function GET(request) {
             };
           }),
       }))
+      .map((session) => {
+        const gameType = data.gameTypes.find((entry) => entry.game_type_id === session.game_type_id);
+        const scoringMode = gameType?.scoring_mode || "highest";
+        const roundCount = session.recent_scores.reduce(
+          (maxRound, entry) => Math.max(maxRound, entry.round_number || 0),
+          0
+        );
+        const memberIds = new Set(session.members.map((member) => member.user_id));
+        for (const score of session.recent_scores) {
+          memberIds.add(score.user_id);
+        }
+
+        const sessionLeaderboard = [...memberIds]
+          .map((userId) => {
+            const user = data.users.find((item) => item.user_id === userId);
+            const scores = session.recent_scores.filter((entry) => entry.user_id === userId);
+            return {
+              user_id: userId,
+              username: user?.username || userId,
+              photo_url: user?.photo_url || user?.avatar_url || "",
+              total_score: scores.reduce((sum, entry) => sum + Number(entry.score || 0), 0),
+              rounds_won: scores.filter((entry) => entry.is_winner).length,
+              rounds_played: scores.length,
+            };
+          })
+          .sort((left, right) => {
+            const scoreCompare =
+              scoringMode === "lowest"
+                ? left.total_score - right.total_score
+                : right.total_score - left.total_score;
+            if (scoreCompare !== 0) return scoreCompare;
+            if (right.rounds_won !== left.rounds_won) return right.rounds_won - left.rounds_won;
+            return left.username.localeCompare(right.username);
+          });
+
+        return {
+          ...session,
+          round_count: roundCount,
+          session_leaderboard: sessionLeaderboard,
+        };
+      })
       .sort((left, right) => {
         const primary = compareValues(left[safeSortBy], right[safeSortBy], sortOrder);
         if (primary !== 0) return primary;
@@ -124,6 +165,36 @@ export async function POST(request) {
 
     globalThis.__gtCacheInvalidated = Date.now();
     return json(session, { status: 201 });
+  } catch (err) {
+    console.error(err);
+    return error(err.message);
+  }
+}
+
+export async function PUT(request) {
+  try {
+    const sessionUser = await requireSessionUser();
+    if (!sessionUser) {
+      return error("Unauthorized", 401);
+    }
+
+    const currentUser = await findUserByEmail(sessionUser.email);
+    if (!currentUser?.user) {
+      return error("Complete onboarding first", 400);
+    }
+
+    const { game_id, action } = await request.json();
+    if (!game_id || action !== "end") {
+      return error("game_id and action=end required", 400);
+    }
+
+    const session = await endGame({
+      actorUserId: currentUser.user.user_id,
+      gameId: game_id,
+    });
+
+    globalThis.__gtCacheInvalidated = Date.now();
+    return json(session);
   } catch (err) {
     console.error(err);
     return error(err.message);

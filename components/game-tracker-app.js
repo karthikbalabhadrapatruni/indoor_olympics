@@ -31,6 +31,7 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
   const [createGameForm, setCreateGameForm] = useState({ title: "", gameTypeId: "", visibility: "public" });
   const [addPlayersState, setAddPlayersState] = useState({ game: null, userIds: [] });
   const [scoreDialogState, setScoreDialogState] = useState({ game: null, entries: [], nextRoundNumber: 1 });
+  const [sessionLeaderboardState, setSessionLeaderboardState] = useState({ game: null });
   const [listRefreshKey, setListRefreshKey] = useState(0);
   const [profileData, setProfileData] = useState(null);
   const [gameTypeCreateForm, setGameTypeCreateForm] = useState({
@@ -432,12 +433,33 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
 
   function openScoreDialog(game) {
     const nextRoundNumber =
-      Math.max(0, ...(game.recent_scores || []).map((entry) => entry.round_number || 1)) + 1;
+      Math.max(0, ...(game.recent_scores || []).map((entry) => entry.round_number || 0)) + 1;
     setScoreDialogState({
       game,
       nextRoundNumber,
       entries: game.members.map((member) => ({ user_id: member.user_id, score: "" })),
     });
+  }
+
+  async function handleEndGame(game) {
+    try {
+      await apiRequest("/api/game-sessions", {
+        method: "PUT",
+        body: {
+          game_id: game.game_id,
+          action: "end",
+        },
+      });
+      await refresh();
+      setListRefreshKey((current) => current + 1);
+      setGamesState((current) => ({ ...current, pagination: { ...current.pagination, page: 1 } }));
+      setSessionLeaderboardState((current) =>
+        current.game?.game_id === game.game_id ? { game: null } : current
+      );
+      showToast("Game ended");
+    } catch (requestError) {
+      showToast(requestError.message, "error");
+    }
   }
 
   async function submitScores() {
@@ -559,6 +581,10 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
               }))
             }
             onSubmitScores={submitScores}
+            sessionLeaderboardState={sessionLeaderboardState}
+            onOpenSessionLeaderboard={(game) => setSessionLeaderboardState({ game })}
+            onCloseSessionLeaderboard={() => setSessionLeaderboardState({ game: null })}
+            onEndGame={handleEndGame}
             sessions={gamesState.items}
             sessionsPagination={gamesState.pagination}
             sessionsSorting={gamesState.sort}
