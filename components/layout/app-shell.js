@@ -4,6 +4,7 @@ import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import SportsEsportsOutlinedIcon from "@mui/icons-material/SportsEsportsOutlined";
 import LeaderboardOutlinedIcon from "@mui/icons-material/LeaderboardOutlined";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
+import ExtensionOutlinedIcon from "@mui/icons-material/ExtensionOutlined";
 import {
   Avatar,
   Box,
@@ -18,6 +19,7 @@ import {
 
 const ICONS = {
   dashboard: DashboardOutlinedIcon,
+  "game-types": ExtensionOutlinedIcon,
   games: SportsEsportsOutlinedIcon,
   leaderboard: LeaderboardOutlinedIcon,
   profile: AccountCircleOutlinedIcon,

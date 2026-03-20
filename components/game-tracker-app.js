@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AuthLanding } from "./auth/auth-landing";
 import { OnboardingScreen } from "./auth/onboarding-screen";
 import { AppShell } from "./layout/app-shell";
+import { GameTypesPage } from "./pages/game-types-page";
 import { HomeDashboardPage } from "./pages/home-dashboard-page";
 import { GamesWorkspacePage } from "./pages/games-workspace-page";
 import { LeaderboardPage } from "./pages/leaderboard-page";
@@ -32,6 +33,14 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
   const [scoreDialogState, setScoreDialogState] = useState({ game: null, entries: [], nextRoundNumber: 1 });
   const [listRefreshKey, setListRefreshKey] = useState(0);
   const [profileData, setProfileData] = useState(null);
+  const [gameTypeCreateForm, setGameTypeCreateForm] = useState({
+    name: "",
+    scoringMode: "highest",
+    description: "",
+  });
+  const [gameTypeEditForms, setGameTypeEditForms] = useState({});
+  const [savingGameTypeCreate, setSavingGameTypeCreate] = useState(false);
+  const [savingGameTypeId, setSavingGameTypeId] = useState("");
   const [leaderboardState, setLeaderboardState] = useState({
     items: [],
     pagination: { page: 1, pageSize: 10, total: 0, totalPages: 1 },
@@ -108,6 +117,20 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
       gameTypeId: current.gameTypeId || data.gameTypes[0]?.game_type_id || "",
     }));
     setLeaderboardGameTypeId((current) => current || data.gameTypes[0]?.game_type_id || "");
+  }, [data.gameTypes]);
+
+  useEffect(() => {
+    setGameTypeEditForms((current) => {
+      const next = {};
+      for (const gameType of data.gameTypes) {
+        next[gameType.game_type_id] = current[gameType.game_type_id] || {
+          name: gameType.name || "",
+          scoringMode: gameType.scoring_mode || "highest",
+          description: gameType.description || "",
+        };
+      }
+      return next;
+    });
   }, [data.gameTypes]);
 
   useEffect(() => {
@@ -286,6 +309,73 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
     setCreateGameForm((current) => ({ ...current, [field]: value }));
   }
 
+  function changeGameTypeCreateForm(field, value) {
+    setGameTypeCreateForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function changeGameTypeEditForm(gameTypeId, field, value) {
+    setGameTypeEditForms((current) => ({
+      ...current,
+      [gameTypeId]: {
+        ...(current[gameTypeId] || {}),
+        [field]: value,
+      },
+    }));
+  }
+
+  async function handleCreateGameType() {
+    if (!gameTypeCreateForm.name.trim()) {
+      showToast("Enter a game type name", "error");
+      return;
+    }
+
+    try {
+      setSavingGameTypeCreate(true);
+      await apiRequest("/api/game-types", {
+        method: "POST",
+        body: {
+          name: gameTypeCreateForm.name.trim(),
+          scoring_mode: gameTypeCreateForm.scoringMode,
+          description: gameTypeCreateForm.description.trim(),
+        },
+      });
+      setGameTypeCreateForm({ name: "", scoringMode: "highest", description: "" });
+      await refresh();
+      showToast("Game type created");
+    } catch (requestError) {
+      showToast(requestError.message, "error");
+    } finally {
+      setSavingGameTypeCreate(false);
+    }
+  }
+
+  async function handleSaveGameType(gameTypeId) {
+    const form = gameTypeEditForms[gameTypeId];
+    if (!form?.name?.trim()) {
+      showToast("Game type name cannot be empty", "error");
+      return;
+    }
+
+    try {
+      setSavingGameTypeId(gameTypeId);
+      await apiRequest("/api/game-types", {
+        method: "PUT",
+        body: {
+          game_type_id: gameTypeId,
+          name: form.name.trim(),
+          scoring_mode: form.scoringMode,
+          description: form.description?.trim() || "",
+        },
+      });
+      await refresh();
+      showToast("Game type updated");
+    } catch (requestError) {
+      showToast(requestError.message, "error");
+    } finally {
+      setSavingGameTypeId("");
+    }
+  }
+
   async function handleCreateGame() {
     if (!createGameForm.title.trim()) {
       showToast("Give the game a title", "error");
@@ -423,6 +513,20 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
     switch (activePage) {
       case "dashboard":
         return <HomeDashboardPage data={data} paletteMap={paletteMap} onOpenGames={() => setActivePage("games")} />;
+      case "game-types":
+        return (
+          <GameTypesPage
+            gameTypes={data.gameTypes}
+            createForm={gameTypeCreateForm}
+            editForms={gameTypeEditForms}
+            savingCreate={savingGameTypeCreate}
+            savingEditId={savingGameTypeId}
+            onChangeCreateForm={changeGameTypeCreateForm}
+            onCreateGameType={handleCreateGameType}
+            onChangeEditForm={changeGameTypeEditForm}
+            onSaveEditForm={handleSaveGameType}
+          />
+        );
       case "games":
         return (
           <GamesWorkspacePage
