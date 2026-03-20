@@ -36,6 +36,13 @@ export async function GET(request) {
 
     const enriched = data.sessions
       .filter((session) => {
+        if (
+          session.visibility === "private" &&
+          session.owner_user_id !== currentUser.user.user_id &&
+          !allowedIds.has(session.game_id)
+        ) {
+          return false;
+        }
         if (gameTypeName === "all") return true;
         const gameType = data.gameTypes.find((entry) => entry.game_type_id === session.game_type_id);
         return gameType?.name === gameTypeName;
@@ -55,8 +62,12 @@ export async function GET(request) {
           }),
         recent_scores: data.scores
           .filter((entry) => entry.game_id === session.game_id)
-          .sort((left, right) => right.score - left.score)
-          .slice(0, 4)
+          .sort((left, right) => {
+            if ((right.round_number || 1) !== (left.round_number || 1)) {
+              return (right.round_number || 1) - (left.round_number || 1);
+            }
+            return right.score - left.score;
+          })
           .map((entry) => {
             const user = data.users.find((item) => item.user_id === entry.user_id);
             return {
@@ -96,15 +107,19 @@ export async function POST(request) {
       return error("Complete onboarding first", 400);
     }
 
-    const { game_type_id, title } = await request.json();
+    const { game_type_id, title, visibility } = await request.json();
     if (!game_type_id || !title?.trim()) {
       return error("game_type_id and title required", 400);
+    }
+    if (visibility && !["public", "private"].includes(visibility)) {
+      return error("visibility must be public or private", 400);
     }
 
     const session = await createGame({
       ownerUserId: currentUser.user.user_id,
       gameTypeId: game_type_id,
       title: title.trim(),
+      visibility: visibility || "public",
     });
 
     globalThis.__gtCacheInvalidated = Date.now();

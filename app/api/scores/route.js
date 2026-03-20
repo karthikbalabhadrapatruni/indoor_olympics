@@ -24,7 +24,7 @@ export async function GET() {
       return error("Complete onboarding first", 400);
     }
     const sheets = getSheetsClient();
-    const rows = await readSheet(sheets, "scores!A2:E");
+    const rows = await readSheet(sheets, "scores!A2:F");
     return json(rows.map(rowToScore));
   } catch (err) {
     console.error(err);
@@ -59,7 +59,7 @@ export async function POST(request) {
     }
 
     const sheets = getSheetsClient();
-    const sessionRows = await readSheet(sheets, "game_sessions!A2:E");
+    const sessionRows = await readSheet(sheets, "game_sessions!A2:F");
     const session = sessionRows.find((row) => row[0] === game_id);
     if (!session) {
       return error(`game_id '${game_id}' not found`, 404);
@@ -73,7 +73,18 @@ export async function POST(request) {
     }
 
     const gameTypeId = session[1];
-    const maxScore = Math.max(...scores.map((entry) => Number(entry.score)));
+    const gameTypeRows = await readSheet(sheets, "game_types!A2:D");
+    const gameType = gameTypeRows.find((row) => row[0] === gameTypeId);
+    const scoringMode = gameType?.[2] || "highest";
+    const existingScores = (await readSheet(sheets, "scores!A2:F"))
+      .map(rowToScore)
+      .filter((entry) => entry.game_id === game_id);
+    const nextRoundNumber =
+      existingScores.reduce((maxRound, entry) => Math.max(maxRound, entry.round_number || 1), 0) + 1;
+    const winningScore =
+      scoringMode === "lowest"
+        ? Math.min(...scores.map((entry) => Number(entry.score)))
+        : Math.max(...scores.map((entry) => Number(entry.score)));
     const written = [];
 
     for (const entry of scores) {
@@ -82,22 +93,24 @@ export async function POST(request) {
         game_id,
         user_id: entry.user_id,
         score: Number(entry.score),
-        is_winner: Number(entry.score) === maxScore,
+        is_winner: Number(entry.score) === winningScore,
+        round_number: nextRoundNumber,
       };
 
-      await appendRow(sheets, "scores!A:E", [
+      await appendRow(sheets, "scores!A:F", [
         item.score_id,
         item.game_id,
         item.user_id,
         item.score,
         item.is_winner ? "TRUE" : "FALSE",
+        item.round_number,
       ]);
       await upsertStats(sheets, entry.user_id, gameTypeId, item.score, item.is_winner ? 1 : 0);
       written.push(item);
     }
 
     globalThis.__gtCacheInvalidated = Date.now();
-    return json({ written }, { status: 201 });
+    return json({ written, round_number: nextRoundNumber }, { status: 201 });
   } catch (err) {
     console.error(err);
     return error(err.message);

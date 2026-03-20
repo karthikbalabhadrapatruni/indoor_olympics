@@ -1,6 +1,6 @@
 "use client";
 
-import { Chip, Grid, LinearProgress, Stack, Typography } from "@mui/material";
+import { Chip, Grid, LinearProgress, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import { BarChart } from "../common/bar-chart";
 import { ListControls } from "../common/list-controls";
 import { PlayerAvatar } from "../common/player-avatar";
@@ -19,8 +19,11 @@ export function LeaderboardPage({
   pagination,
   sorting,
   chartItems,
+  gameTypes,
+  selectedGameTypeId,
   userMap,
   paletteMap,
+  onChangeGameTypeId,
   onChangePage,
   onChangePageSize,
   onChangeSortBy,
@@ -33,6 +36,19 @@ export function LeaderboardPage({
       <Grid item xs={12} lg={7}>
         <SectionCard title="Overall leaderboard">
           <Stack spacing={2.5}>
+            <TextField
+              select
+              label="Game"
+              value={selectedGameTypeId}
+              onChange={(event) => onChangeGameTypeId(event.target.value)}
+              sx={{ maxWidth: 280 }}
+            >
+              {gameTypes.map((gameType) => (
+                <MenuItem key={gameType.game_type_id} value={gameType.game_type_id}>
+                  {gameType.name}
+                </MenuItem>
+              ))}
+            </TextField>
             <ListControls
               page={pagination.page}
               totalPages={pagination.totalPages}
@@ -75,9 +91,9 @@ export function LeaderboardPage({
                     </Typography>
                   </Stack>
                   <Chip
-                    label={item.game_types_played.length >= 2 ? "All-rounder" : "Specialist"}
-                    color={item.game_types_played.length >= 2 ? "warning" : "default"}
-                    variant={item.game_types_played.length >= 2 ? "filled" : "outlined"}
+                    label={`${item.win_pct}% wins`}
+                    color="primary"
+                    variant="outlined"
                   />
                 </Stack>
               );

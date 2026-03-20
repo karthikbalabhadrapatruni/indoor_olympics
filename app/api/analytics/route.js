@@ -12,6 +12,7 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const type = searchParams.get("type") || "rankings";
   const userId = searchParams.get("user_id");
+  const gameTypeId = searchParams.get("game_type_id");
   const page = parsePositiveInt(searchParams.get("page"), 1);
   const pageSize = Math.min(parsePositiveInt(searchParams.get("pageSize"), 10), 50);
   const sortOrder = parseSortOrder(searchParams.get("sortOrder"), "desc");
@@ -19,7 +20,14 @@ export async function GET(request) {
 
   try {
     const data = await readAllData();
-    const analytics = buildAnalytics(data);
+    const analytics = buildAnalytics(
+      gameTypeId
+        ? {
+            ...data,
+            stats: data.stats.filter((stat) => stat.game_type_id === gameTypeId),
+          }
+        : data
+    );
 
     if (type === "rankings") {
       const allowedSortFields = new Set(["username", "total_score", "win_pct", "total_wins", "total_games"]);
@@ -34,6 +42,7 @@ export async function GET(request) {
         items: paged.items,
         pagination: paged.pagination,
         sort: { sortBy: safeSortBy, sortOrder },
+        game_type_id: gameTypeId || "all",
       });
     }
 

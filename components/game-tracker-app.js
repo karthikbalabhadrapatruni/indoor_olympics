@@ -26,9 +26,10 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
   const [username, setUsername] = useState("");
   const [usernameSaving, setUsernameSaving] = useState(false);
   const [gameTypeFilter, setGameTypeFilter] = useState("all");
-  const [createGameForm, setCreateGameForm] = useState({ title: "", gameTypeId: "" });
+  const [leaderboardGameTypeId, setLeaderboardGameTypeId] = useState("");
+  const [createGameForm, setCreateGameForm] = useState({ title: "", gameTypeId: "", visibility: "public" });
   const [addPlayersState, setAddPlayersState] = useState({ game: null, userIds: [] });
-  const [scoreDialogState, setScoreDialogState] = useState({ game: null, entries: [] });
+  const [scoreDialogState, setScoreDialogState] = useState({ game: null, entries: [], nextRoundNumber: 1 });
   const [listRefreshKey, setListRefreshKey] = useState(0);
   const [profileData, setProfileData] = useState(null);
   const [leaderboardState, setLeaderboardState] = useState({
@@ -106,6 +107,7 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
       ...current,
       gameTypeId: current.gameTypeId || data.gameTypes[0]?.game_type_id || "",
     }));
+    setLeaderboardGameTypeId((current) => current || data.gameTypes[0]?.game_type_id || "");
   }, [data.gameTypes]);
 
   useEffect(() => {
@@ -148,6 +150,7 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
           pageSize: String(leaderboardState.pagination.pageSize),
           sortBy: leaderboardState.sort.sortBy,
           sortOrder: leaderboardState.sort.sortOrder,
+          game_type_id: leaderboardGameTypeId,
         });
         const result = await apiRequest(`/api/analytics?${params.toString()}`);
         if (!cancelled) {
@@ -178,6 +181,7 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
     leaderboardState.pagination.pageSize,
     leaderboardState.sort.sortBy,
     leaderboardState.sort.sortOrder,
+    leaderboardGameTypeId,
     listRefreshKey,
   ]);
 
@@ -294,12 +298,13 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
         body: {
           title: createGameForm.title.trim(),
           game_type_id: createGameForm.gameTypeId,
+          visibility: createGameForm.visibility,
         },
       });
       await refresh();
       setListRefreshKey((current) => current + 1);
       setGamesState((current) => ({ ...current, pagination: { ...current.pagination, page: 1 } }));
-      setCreateGameForm((current) => ({ ...current, title: "" }));
+      setCreateGameForm((current) => ({ ...current, title: "", visibility: "public" }));
       setActivePage("games");
       showToast("Game created");
     } catch (requestError) {
@@ -336,8 +341,11 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
   }
 
   function openScoreDialog(game) {
+    const nextRoundNumber =
+      Math.max(0, ...(game.recent_scores || []).map((entry) => entry.round_number || 1)) + 1;
     setScoreDialogState({
       game,
+      nextRoundNumber,
       entries: game.members.map((member) => ({ user_id: member.user_id, score: "" })),
     });
   }
@@ -366,7 +374,7 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
       });
       await refresh();
       setListRefreshKey((current) => current + 1);
-      setScoreDialogState({ game: null, entries: [] });
+      setScoreDialogState({ game: null, entries: [], nextRoundNumber: 1 });
       showToast("Scores saved");
     } catch (requestError) {
       showToast(requestError.message, "error");
@@ -437,7 +445,7 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
             onSubmitAddPlayers={submitAddPlayers}
             scoreDialogState={scoreDialogState}
             onOpenScoreDialog={openScoreDialog}
-            onCloseScoreDialog={() => setScoreDialogState({ game: null, entries: [] })}
+            onCloseScoreDialog={() => setScoreDialogState({ game: null, entries: [], nextRoundNumber: 1 })}
             onChangeScoreEntry={(index, value) =>
               setScoreDialogState((current) => ({
                 ...current,
@@ -481,9 +489,18 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
             items={leaderboardState.items}
             pagination={leaderboardState.pagination}
             sorting={leaderboardState.sort}
-            chartItems={data.rankings.slice(0, 8)}
+            chartItems={leaderboardState.items.slice(0, 8)}
+            gameTypes={data.gameTypes}
+            selectedGameTypeId={leaderboardGameTypeId}
             userMap={userMap}
             paletteMap={paletteMap}
+            onChangeGameTypeId={(gameTypeId) => {
+              setLeaderboardGameTypeId(gameTypeId);
+              setLeaderboardState((current) => ({
+                ...current,
+                pagination: { ...current.pagination, page: 1 },
+              }));
+            }}
             onChangePage={(page) =>
               setLeaderboardState((current) => ({
                 ...current,

@@ -36,7 +36,14 @@ export async function GET() {
     const accessibleIds = new Set(
       data.access.filter((entry) => entry.user_id === currentUser.user.user_id).map((entry) => entry.game_id)
     );
-    const sessions = data.sessions.map((session) => ({
+    const sessions = data.sessions
+      .filter(
+        (session) =>
+          session.visibility !== "private" ||
+          session.owner_user_id === currentUser.user.user_id ||
+          accessibleIds.has(session.game_id)
+      )
+      .map((session) => ({
         ...session,
         can_manage:
           session.owner_user_id === currentUser.user.user_id || accessibleIds.has(session.game_id),
@@ -51,7 +58,8 @@ export async function GET() {
             };
           }),
       }));
-    const scores = data.scores;
+    const visibleGameIds = new Set(sessions.map((session) => session.game_id));
+    const scores = data.scores.filter((score) => visibleGameIds.has(score.game_id));
     const me = analytics.rankings.find((item) => item.user_id === currentUser.user.user_id) || currentUser.user;
 
     const payload = {
