@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { apiRequest } from "../lib/client/api";
 import { INITIAL_BOOTSTRAP_STATE, PALETTES } from "../lib/client/constants";
 
-export function useGameTrackerData() {
+export function useGameTrackerData(enabled = true) {
   const [data, setData] = useState(INITIAL_BOOTSTRAP_STATE);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -33,8 +33,12 @@ export function useGameTrackerData() {
   }
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
     refresh().catch(() => {});
-  }, []);
+  }, [enabled]);
 
   return {
     data,

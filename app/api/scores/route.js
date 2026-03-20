@@ -3,14 +3,25 @@ import {
   getSheetsClient,
   readSheet,
   rowToScore,
+  safeReadSheet,
   upsertStats,
 } from "../../../lib/sheets";
 import { error, json } from "../../../lib/http";
+import { requireSessionUser } from "../../../lib/server-auth";
+import { findUserByEmail } from "../../../lib/user-service";
 
 export const runtime = "nodejs";
 
 export async function GET() {
   try {
+    const sessionUser = await requireSessionUser();
+    if (!sessionUser) {
+      return error("Unauthorized", 401);
+    }
+    const currentUser = await findUserByEmail(sessionUser.email);
+    if (!currentUser?.user) {
+      return error("Complete onboarding first", 400);
+    }
     const sheets = getSheetsClient();
     const rows = await readSheet(sheets, "scores!A2:E");
     return json(rows.map(rowToScore));
@@ -22,16 +33,32 @@ export async function GET() {
 
 export async function POST(request) {
   try {
+    const sessionUser = await requireSessionUser();
+    if (!sessionUser) {
+      return error("Unauthorized", 401);
+    }
+    const currentUser = await findUserByEmail(sessionUser.email);
+    if (!currentUser?.user) {
+      return error("Complete onboarding first", 400);
+    }
+
     const { game_id, scores } = await request.json();
     if (!game_id || !Array.isArray(scores) || scores.length === 0) {
       return error("game_id and scores[] required", 400);
     }
 
     const sheets = getSheetsClient();
-    const sessionRows = await readSheet(sheets, "game_sessions!A2:C");
+    const sessionRows = await readSheet(sheets, "game_sessions!A2:E");
     const session = sessionRows.find((row) => row[0] === game_id);
     if (!session) {
       return error(`game_id '${game_id}' not found`, 404);
+    }
+    const accessRows = await safeReadSheet(sheets, "game_access!A2:E");
+    const allowed =
+      session[3] === currentUser.user.user_id ||
+      accessRows.some((row) => row[1] === game_id && row[2] === currentUser.user.user_id);
+    if (!allowed) {
+      return error("you do not have access to submit scores for this game", 403);
     }
 
     const gameTypeId = session[1];

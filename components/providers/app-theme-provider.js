@@ -6,10 +6,10 @@ const theme = createTheme({
   palette: {
     mode: "light",
     primary: {
-      main: "#2457A6",
+      main: "#2255A4",
     },
     secondary: {
-      main: "#0B7A75",
+      main: "#0A7A70",
     },
     background: {
       default: "#F5F7FB",
@@ -34,6 +34,10 @@ const theme = createTheme({
       fontWeight: 700,
       letterSpacing: "-0.03em",
     },
+    h2: {
+      fontWeight: 800,
+      letterSpacing: "-0.04em",
+    },
     h6: {
       fontWeight: 700,
     },
@@ -47,7 +51,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           border: "1px solid rgba(15, 23, 42, 0.08)",
-          boxShadow: "0 12px 36px rgba(15, 23, 42, 0.05)",
+          boxShadow: "0 18px 50px rgba(15, 23, 42, 0.06)",
         },
       },
     },
@@ -59,6 +63,14 @@ const theme = createTheme({
         root: {
           textTransform: "none",
           fontWeight: 600,
+          borderRadius: 14,
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          borderRadius: 999,
         },
       },
     },

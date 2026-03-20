@@ -18,7 +18,7 @@ export async function POST(request) {
 
     const sheets = getSheetsClient();
     const drive = getDriveClient();
-    const rows = await readSheet(sheets, "users!A2:E");
+    const rows = await readSheet(sheets, "users!A2:H");
     const idx = rows.findIndex((row) => row[0] === user_id);
     if (idx === -1) {
       return error("user not found", 404);
@@ -54,12 +54,15 @@ export async function POST(request) {
 
     const photoUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w200`;
     const sheetRow = idx + 2;
-    await updateRow(sheets, `users!A${sheetRow}:E${sheetRow}`, [
+    await updateRow(sheets, `users!A${sheetRow}:H${sheetRow}`, [
       rows[idx][0],
       rows[idx][1],
       rows[idx][2],
       fileId,
       photoUrl,
+      rows[idx][5] || "",
+      rows[idx][6] || "",
+      rows[idx][7] || "",
     ]);
 
     globalThis.__gtCacheInvalidated = Date.now();
