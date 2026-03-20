@@ -1,0 +1,21 @@
+"use client";
+
+import { Card, CardContent, Stack, Typography } from "@mui/material";
+
+export function SectionCard({ title, children, action }) {
+  return (
+    <Card>
+      <CardContent>
+        <Stack spacing={2}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
+            <Typography variant="overline" color="text.secondary">
+              {title}
+            </Typography>
+            {action}
+          </Stack>
+          {children}
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}

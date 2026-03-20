@@ -1,33 +1,38 @@
-# GameTracker — Olympic-style Analytics Platform
+# GameTracker
 
-A full-stack game analytics tracker backed by **Google Sheets** as the database, deployed on **Vercel for free**.
-
----
+A Next.js app-router project for tracking players, sessions, scores, analytics, and profile photos with Google Sheets and Google Drive as the backend.
 
 ## Architecture
 
-```
-Vercel (free tier)
-├── public/index.html       ← Frontend (single HTML file, no build step)
-└── api/
-    ├── users.js            ← GET /api/users · POST /api/users
-    ├── game-types.js       ← GET /api/game-types · POST /api/game-types
-    ├── game-sessions.js    ← GET /api/game-sessions · POST /api/game-sessions
-    ├── scores.js           ← GET /api/scores · POST /api/scores
-    └── analytics.js        ← GET /api/analytics?type=rankings|allrounders|player
-        
-lib/sheets.js               ← Shared Google Sheets client + helpers
+```text
+app/
+  page.js                     Home page UI
+  globals.css                 Shared styling
+  api/
+    bootstrap/route.js        Batched dashboard bootstrap payload
+    analytics/route.js        Rankings, all-rounders, player analytics
+    users/route.js            Player create/list
+    game-types/route.js       Game type create/list
+    game-sessions/route.js    Session create/list
+    scores/route.js           Score submission/list
+    upload-photo/route.js     Google Drive photo upload
+components/
+  game-tracker-app.js         Main client-side dashboard app
+lib/
+  google.js                   Google auth/client helpers
+  sheets.js                   Sheets CRUD helpers
+  game-tracker-data.js        Shared analytics shaping
 ```
 
-Google Sheets acts as the database with 6 sheets/tabs:
-`users` · `game_types` · `game_sessions` · `game_participants` · `scores` · `user_game_stats`
+The app is designed to deploy directly to Vercel as a standard Next.js project.
+Google Sheets is the database, and the app actively uses `users`, `game_types`, `game_sessions`, `scores`, and `user_game_stats`.
 
 ---
 
 ## Step 1 — Set up Google Sheets
 
 1. Create a new Google Spreadsheet at https://sheets.google.com
-2. Create 6 sheets (tabs) with these exact names and headers:
+2. Create these sheets (tabs) with these exact names and headers:
 
 **users** (row 1 headers):
 ```
@@ -47,11 +52,6 @@ Seed with your game types:
 **game_sessions** (row 1 headers):
 ```
 game_id | game_type_id | played_at
-```
-
-**game_participants** (row 1 headers):
-```
-id | game_id | user_id
 ```
 
 **scores** (row 1 headers):
@@ -87,7 +87,25 @@ id | user_id | game_type_id | total_score | total_games | total_wins
 
 ---
 
-## Step 3 — Deploy to Vercel
+## Step 3 — Run locally
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Create `.env.local` with:
+   ```bash
+   GOOGLE_SERVICE_ACCOUNT_EMAIL=...
+   GOOGLE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n
+   SPREADSHEET_ID=...
+   DRIVE_FOLDER_ID=...
+   ```
+3. Start the app:
+   ```bash
+   npm run dev
+   ```
+
+## Step 4 — Deploy to Vercel
 
 ### Option A: GitHub (recommended)
 
@@ -100,7 +118,7 @@ id | user_id | game_type_id | total_score | total_games | total_wins
    git push -u origin main
    ```
 2. Go to https://vercel.com → New Project → Import your repo
-3. Vercel auto-detects the project. No build config needed.
+3. Vercel auto-detects the project as Next.js.
 4. Add Environment Variables (Settings → Environment Variables):
 
 | Variable | Value |
@@ -108,6 +126,7 @@ id | user_id | game_type_id | total_score | total_games | total_wins
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | `gametracker-sa@your-project.iam.gserviceaccount.com` |
 | `GOOGLE_PRIVATE_KEY` | `-----BEGIN RSA PRIVATE KEY-----\n...` (paste the full key, newlines as `\n`) |
 | `SPREADSHEET_ID` | Your spreadsheet ID from step 1 |
+| `DRIVE_FOLDER_ID` | Optional Drive folder for uploaded photos |
 
 5. Deploy → your app is live at `https://gametracker-xxx.vercel.app`
 
@@ -124,9 +143,7 @@ vercel env add SPREADSHEET_ID
 vercel --prod
 ```
 
----
-
-## Step 4 — Seed initial data
+## Step 5 — Seed initial data
 
 Use the **Add Player** page in the UI to register your players, or POST directly:
 
@@ -173,6 +190,7 @@ curl -X POST https://your-app.vercel.app/api/scores \
 | POST | `/api/game-sessions` | Create session `{game_id, game_type_id}` |
 | GET | `/api/scores` | List all scores |
 | POST | `/api/scores` | Submit scores `{game_id, scores:[{user_id,score}]}` — auto-detects winner, updates stats |
+| GET | `/api/bootstrap` | Batched app payload for the dashboard |
 | GET | `/api/analytics?type=rankings` | Player rankings by total score |
 | GET | `/api/analytics?type=allrounders` | All-rounder classification |
 | GET | `/api/analytics?type=player&user_id=X` | Full player profile + history |
@@ -181,6 +199,6 @@ curl -X POST https://your-app.vercel.app/api/scores \
 
 ## Notes
 
-- **Free tier limits**: Vercel Hobby = unlimited deployments, 100GB bandwidth/month. Google Sheets API = 300 reads/minute (plenty for this use case).
-- **Private key formatting**: In Vercel's env var dashboard, paste the key with literal `\n` — Vercel handles the escaping. The `lib/sheets.js` replaces `\\n` → `\n` at runtime.
-- **Concurrency**: Google Sheets has no row-level locking. For high-frequency concurrent writes, consider adding a Redis layer or upgrading to Firestore/Supabase. For a small group of friends, Sheets works perfectly.
+- `lib/google.js` replaces escaped `\\n` sequences in `GOOGLE_PRIVATE_KEY` at runtime.
+- Uploaded photos are stored in Google Drive and their public thumbnail URL is written back into the `users` sheet.
+- The bootstrap route uses a short in-memory cache to reduce repeated Sheets reads.
