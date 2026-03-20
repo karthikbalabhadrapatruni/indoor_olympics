@@ -4,13 +4,13 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import {
   Button,
+  Grid,
   IconButton,
   MenuItem,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
-import Grid from "@mui/material/Grid2";
 import { SectionCard } from "../common/section-card";
 
 export function EnterScoresPage({
@@ -29,7 +29,7 @@ export function EnterScoresPage({
 
   return (
     <Grid container spacing={2}>
-      <Grid size={{ xs: 12, lg: 6 }}>
+      <Grid item xs={12} lg={6}>
         <SectionCard title="Session details">
           <Stack spacing={2}>
             <TextField
@@ -55,7 +55,7 @@ export function EnterScoresPage({
 
             {scoreEntries.map((entry, index) => (
               <Grid container spacing={1} key={`${index}-${entry.user_id}`}>
-                <Grid size={{ xs: 12, sm: 6 }}>
+                <Grid item xs={12} sm={6}>
                   <TextField
                     select
                     fullWidth
@@ -69,7 +69,7 @@ export function EnterScoresPage({
                     ))}
                   </TextField>
                 </Grid>
-                <Grid size={{ xs: 10, sm: 4 }}>
+                <Grid item xs={10} sm={4}>
                   <TextField
                     fullWidth
                     type="number"
@@ -78,7 +78,7 @@ export function EnterScoresPage({
                     placeholder="Score"
                   />
                 </Grid>
-                <Grid size={{ xs: 2, sm: 2 }}>
+                <Grid item xs={2} sm={2}>
                   <IconButton color="error" onClick={() => onRemoveScoreEntry(index)}>
                     <DeleteOutlineIcon />
                   </IconButton>
@@ -98,7 +98,7 @@ export function EnterScoresPage({
         </SectionCard>
       </Grid>
 
-      <Grid size={{ xs: 12, lg: 6 }}>
+      <Grid item xs={12} lg={6}>
         <SectionCard title="Recent sessions">
           <Stack spacing={2}>
             {recentSessions.map((session) => {

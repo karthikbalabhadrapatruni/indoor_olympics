@@ -1,7 +1,6 @@
 "use client";
 
-import { Box, Chip, LinearProgress, Stack, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import { Box, Chip, Grid, LinearProgress, Stack, Typography } from "@mui/material";
 import { BarChart } from "../common/bar-chart";
 import { MetricCard } from "../common/metric-card";
 import { PlayerAvatar } from "../common/player-avatar";
@@ -15,22 +14,22 @@ export function DashboardPage({ data, paletteMap }) {
   return (
     <Stack spacing={3}>
       <Grid container spacing={2}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
           <MetricCard label="Players" value={data.users.length} />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
           <MetricCard label="Sessions" value={data.sessions.length} />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
           <MetricCard label="Game Types" value={data.gameTypes.length} />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
           <MetricCard label="Scores Logged" value={data.scores.length} />
         </Grid>
       </Grid>
 
       <Grid container spacing={2}>
-        <Grid size={{ xs: 12, lg: 6 }}>
+        <Grid item xs={12} lg={6}>
           <SectionCard title="Overall rankings">
             <Stack spacing={2}>
               {data.rankings.map((item, index) => {
@@ -67,7 +66,7 @@ export function DashboardPage({ data, paletteMap }) {
           </SectionCard>
         </Grid>
 
-        <Grid size={{ xs: 12, lg: 6 }}>
+        <Grid item xs={12} lg={6}>
           <SectionCard title="Win percentage">
             <BarChart
               data={{
@@ -96,7 +95,7 @@ export function DashboardPage({ data, paletteMap }) {
       </Grid>
 
       <Grid container spacing={2}>
-        <Grid size={{ xs: 12, lg: 6 }}>
+        <Grid item xs={12} lg={6}>
           <SectionCard title="Score by game type">
             <Stack spacing={2}>
               <Stack direction="row" spacing={1}>
@@ -139,7 +138,7 @@ export function DashboardPage({ data, paletteMap }) {
           </SectionCard>
         </Grid>
 
-        <Grid size={{ xs: 12, lg: 6 }}>
+        <Grid item xs={12} lg={6}>
           <SectionCard title="All-rounder analysis">
             <Stack spacing={2}>
               {data.allrounders.map((item) => {

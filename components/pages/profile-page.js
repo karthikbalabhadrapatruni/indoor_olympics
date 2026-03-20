@@ -5,12 +5,12 @@ import {
   Box,
   Button,
   Chip,
+  Grid,
   Stack,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
 } from "@mui/material";
-import Grid from "@mui/material/Grid2";
 import { MetricCard } from "../common/metric-card";
 import { SectionCard } from "../common/section-card";
 
@@ -72,22 +72,22 @@ export function ProfilePage({
           </SectionCard>
 
           <Grid container spacing={2}>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Grid item xs={12} sm={6} md={3}>
               <MetricCard label="Rank" value={`#${rank}`} />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Grid item xs={12} sm={6} md={3}>
               <MetricCard label="Total score" value={profileData.total_score} />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Grid item xs={12} sm={6} md={3}>
               <MetricCard label="Win rate" value={`${profileData.win_pct}%`} />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Grid item xs={12} sm={6} md={3}>
               <MetricCard label="Wins" value={profileData.total_wins} />
             </Grid>
           </Grid>
 
           <Grid container spacing={2}>
-            <Grid size={{ xs: 12, lg: 6 }}>
+            <Grid item xs={12} lg={6}>
               <SectionCard title="By game type">
                 <Stack spacing={2}>
                   {profileData.game_types_played?.map((item) => (
@@ -110,7 +110,7 @@ export function ProfilePage({
               </SectionCard>
             </Grid>
 
-            <Grid size={{ xs: 12, lg: 6 }}>
+            <Grid item xs={12} lg={6}>
               <SectionCard title="Game history">
                 <Stack spacing={2}>
                   {profileData.history?.map((item) => (
