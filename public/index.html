@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GameTracker</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f7f5;--surface:#fff;--surface2:#f0f0ed;
+  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.16);
+  --text:#181816;--text2:#5c5c58;--text3:#9a9994;
+  --blue:#2d5fa3;--blue-bg:#e8f0fb;--blue-txt:#1a4a8a;
+  --green:#179966;--green-bg:#e6f4ee;--green-txt:#0d6644;
+  --amber:#b07010;--amber-bg:#fdf0d8;--amber-txt:#7a4e08;
+  --red:#a02020;--red-bg:#fce8e8;--red-txt:#7a1818;
+  --r:8px;--rl:13px;
+}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+.app{display:flex;min-height:100vh}
+.sidebar{width:215px;min-width:215px;background:var(--surface);border-right:0.5px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.sb-logo{padding:1.1rem 1rem 1rem;font-size:16px;font-weight:700;letter-spacing:-.03em;border-bottom:0.5px solid var(--border)}
+.sb-logo span{color:var(--blue)}
+.sb-sec{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;padding:.9rem 1rem .3rem}
+.nav{display:flex;align-items:center;gap:9px;padding:9px 1rem;font-size:13px;cursor:pointer;color:var(--text2);border-left:2.5px solid transparent;transition:all .12s}
+.nav:hover{background:var(--surface2);color:var(--text)}
+.nav.on{background:var(--blue-bg);color:var(--blue-txt);border-left-color:var(--blue);font-weight:500}
+.nav svg{width:15px;height:15px;flex-shrink:0;opacity:.75}
+.sb-foot{margin-top:auto;padding:.9rem 1rem;font-size:11px;color:var(--text3);border-top:0.5px solid var(--border)}
+.main{flex:1;padding:2rem 2.5rem;max-width:1080px}
+.page{display:none}.page.on{display:block}
+.ph{margin-bottom:1.75rem}
+.ph h1{font-size:21px;font-weight:700;letter-spacing:-.03em}
+.ph p{font-size:13px;color:var(--text2);margin-top:3px}
+.card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--rl);padding:1.2rem}
+.ct{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.9rem}
+.mrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin-bottom:1.4rem}
+.mc{background:var(--surface2);border-radius:var(--r);padding:.9rem 1rem}
+.ml{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.mv{font-size:25px;font-weight:700;letter-spacing:-.03em}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:10.5px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:0 9px 9px;border-bottom:0.5px solid var(--border)}
+td{padding:10px 9px;border-bottom:0.5px solid var(--border);font-size:13px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--surface2)}
+.b{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:999px}
+.b-blue{background:var(--blue-bg);color:var(--blue-txt)}
+.b-green{background:var(--green-bg);color:var(--green-txt)}
+.b-amber{background:var(--amber-bg);color:var(--amber-txt)}
+.b-gray{background:var(--surface2);color:var(--text2)}
+.av{border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:600;flex-shrink:0;overflow:hidden;background:var(--surface2)}
+.av img{width:100%;height:100%;object-fit:cover}
+.prog{height:5px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.pf{height:100%;border-radius:3px;background:var(--blue)}
+.cw{position:relative;width:100%;height:200px}
+.fr{margin-bottom:.9rem}
+.fl{font-size:12px;color:var(--text2);font-weight:500;margin-bottom:4px;display:block}
+input[type=text],input[type=number],select{width:100%;padding:8px 10px;font-size:13px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--surface);color:var(--text);outline:none}
+input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(45,95,163,.1)}
+.btn{padding:7px 15px;font-size:13px;font-weight:500;border-radius:var(--r);cursor:pointer;border:0.5px solid var(--border2);background:var(--surface);color:var(--text);transition:all .1s}
+.btn:hover{background:var(--surface2)}
+.btn:active{transform:scale(.98)}
+.btn-p{background:var(--text);color:var(--surface);border-color:var(--text)}
+.btn-p:hover{opacity:.83}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn-d{color:var(--red-txt);border-color:#f0cfcf}
+.btn-d:hover{background:var(--red-bg)}
+.srow{display:grid;grid-template-columns:1fr 110px auto;gap:7px;align-items:center;margin-bottom:7px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem}
+.chip{font-size:12px;padding:5px 12px;border-radius:999px;border:0.5px solid var(--border2);cursor:pointer;color:var(--text2);background:var(--surface);transition:all .1s}
+.chip:hover{background:var(--surface2)}
+.chip.on{background:var(--text);color:var(--surface);border-color:var(--text)}
+.photo-zone{border-radius:50%;border:2px dashed var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;position:relative;flex-shrink:0;transition:border-color .15s;background:var(--surface2)}
+.photo-zone:hover{border-color:var(--blue)}
+.photo-zone img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.photo-zone .pz-icon{font-size:26px;color:var(--text3);pointer-events:none}
+.photo-overlay{position:absolute;inset:0;background:rgba(0,0,0,.44);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;border-radius:50%}
+.photo-zone:hover .photo-overlay{opacity:1}
+.photo-overlay span{color:#fff;font-size:11px;font-weight:600;text-align:center;line-height:1.3}
+.upload-ring{position:absolute;inset:0;border-radius:50%;border:3px solid var(--blue);border-top-color:transparent;animation:spin .7s linear infinite;display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.rank{font-size:15px;font-weight:700;width:22px;color:var(--text3)}
+.r1{color:#b07010}.r2{color:#777}.r3{color:#c05020}
+.toast{position:fixed;bottom:22px;right:22px;background:var(--text);color:var(--surface);font-size:13px;padding:11px 16px;border-radius:var(--rl);z-index:9999;opacity:0;transition:opacity .2s;pointer-events:none;max-width:320px}
+.toast.on{opacity:1}
+.toast.err{background:#8b1a1a}
+.leg{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:7px;font-size:12px;color:var(--text2)}
+.ld{width:10px;height:10px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:3px}
+.spin-wrap{display:flex;justify-content:center;padding:2rem}
+.spinner{width:24px;height:24px;border:2.5px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+@media(max-width:720px){.sidebar{display:none}.main{padding:1rem}.mrow{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="sb-logo">Game<span>Tracker</span></div>
+  <div class="sb-sec">Analytics</div>
+  <div class="nav on" onclick="go('dashboard')"><svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" fill="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1" fill="currentColor" opacity=".45"/><rect x="1" y="9" width="6" height="6" rx="1" fill="currentColor" opacity=".45"/><rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor" opacity=".25"/></svg>Dashboard</div>
+  <div class="nav" onclick="go('players')"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" fill="currentColor"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="1.4" fill="none"/></svg>Players</div>
+  <div class="nav" onclick="go('games')"><svg viewBox="0 0 16 16" fill="none"><rect x="1" y="4" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M5 8h2M6 7v2M11 8h.5M13 8h.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Game Sessions</div>
+  <div class="sb-sec">Actions</div>
+  <div class="nav" onclick="go('enter-scores')"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 5v3.5l2 1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Enter Scores</div>
+  <div class="nav" onclick="go('add-player')"><svg viewBox="0 0 16 16" fill="none"><circle cx="7" cy="5" r="3" fill="currentColor" opacity=".7"/><path d="M1 14c0-3 2.5-5.5 6-5.5" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="M12 10v4M10 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Add Player</div>
+  <div class="nav" onclick="go('profile')"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/><circle cx="8" cy="6" r="2" fill="currentColor"/><path d="M4 12.5c.5-2 7.5-2 8 0" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>My Profile</div>
+  <div class="sb-foot"><div style="font-weight:700;margin-bottom:2px">GameTracker v2.0</div><div>Google Sheets · Drive<br>Deployed on Vercel</div></div>
+</aside>
+
+<main class="main">
+
+  <!-- DASHBOARD -->
+  <div class="page on" id="page-dashboard">
+    <div class="ph"><h1>Dashboard</h1><p>Live analytics across all players and sessions</p></div>
+    <div class="mrow">
+      <div class="mc"><div class="ml">Players</div><div class="mv" id="m-players">—</div></div>
+      <div class="mc"><div class="ml">Sessions</div><div class="mv" id="m-sessions">—</div></div>
+      <div class="mc"><div class="ml">Game Types</div><div class="mv" id="m-types">—</div></div>
+      <div class="mc"><div class="ml">Scores Logged</div><div class="mv" id="m-scores">—</div></div>
+    </div>
+    <div class="g2">
+      <div class="card"><div class="ct">Overall rankings</div><div id="rank-list"><div class="spin-wrap"><div class="spinner"></div></div></div></div>
+      <div class="card"><div class="ct">Win percentage</div><div class="cw"><canvas id="winChart"></canvas></div></div>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="ct">Score by game type</div>
+        <div class="leg"><span><span class="ld" style="background:#2d5fa3"></span>Rummy</span><span><span class="ld" style="background:#179966"></span>Carroms</span></div>
+        <div class="cw"><canvas id="gtChart"></canvas></div>
+      </div>
+      <div class="card"><div class="ct">All-rounder analysis</div><div id="ar-list"><div class="spin-wrap"><div class="spinner"></div></div></div></div>
+    </div>
+  </div>
+
+  <!-- PLAYERS -->
+  <div class="page" id="page-players">
+    <div class="ph"><h1>Players</h1><p>All registered players and cumulative stats</p></div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Player</th><th>Games</th><th>Total score</th><th>Win rate</th><th>Wins</th><th>Status</th></tr></thead>
+        <tbody id="players-tb"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- GAMES -->
+  <div class="page" id="page-games">
+    <div class="ph"><h1>Game Sessions</h1><p>All recorded sessions with scores</p></div>
+    <div class="chips" id="gt-chips"></div>
+    <div id="sessions-list"><div class="spin-wrap"><div class="spinner"></div></div></div>
+  </div>
+
+  <!-- ENTER SCORES -->
+  <div class="page" id="page-enter-scores">
+    <div class="ph"><h1>Enter Scores</h1><p>Record results for a new game session</p></div>
+    <div class="g2">
+      <div class="card">
+        <div class="ct">Session details</div>
+        <div class="fr"><label class="fl">Game ID</label><input type="text" id="inp-gid" placeholder="e.g. G4"/></div>
+        <div class="fr"><label class="fl">Game type</label><select id="inp-gt"></select></div>
+        <div class="fl" style="margin-bottom:8px">Participants &amp; scores</div>
+        <div id="score-entries"></div>
+        <button class="btn btn-sm" onclick="addSRow()" style="margin-bottom:1rem">+ Add player</button>
+        <button class="btn btn-p" style="width:100%" onclick="submitScores()">Submit session</button>
+      </div>
+      <div class="card"><div class="ct">Recent sessions</div><div id="recent-sess"></div></div>
+    </div>
+  </div>
+
+  <!-- ADD PLAYER -->
+  <div class="page" id="page-add-player">
+    <div class="ph"><h1>Add Player</h1><p>Register a new player in the system</p></div>
+    <div style="max-width:420px">
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:1.2rem">
+          <div class="photo-zone" id="new-pzone" style="width:88px;height:88px" onclick="document.getElementById('new-pfile').click()">
+            <span class="pz-icon">+</span>
+            <div class="photo-overlay"><span>Upload<br>Photo</span></div>
+            <div class="upload-ring" id="new-pring"></div>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:500;margin-bottom:3px">Profile photo</div>
+            <div style="font-size:12px;color:var(--text3)">JPG or PNG · max 4 MB<br>Stored on Google Drive</div>
+          </div>
+        </div>
+        <input type="file" id="new-pfile" accept="image/*" style="display:none" onchange="previewNewPhoto(this)"/>
+        <div class="fr"><label class="fl">Username</label><input type="text" id="inp-uname" placeholder="e.g. Suresh"/></div>
+        <button class="btn btn-p" style="width:100%" onclick="addPlayer()">Register player</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFILE -->
+  <div class="page" id="page-profile">
+    <div class="ph"><h1>Player Profile</h1><p>Individual stats, history and photo management</p></div>
+    <div class="chips" id="profile-chips"></div>
+    <div id="profile-content"><div class="spin-wrap"><div class="spinner"></div></div></div>
+  </div>
+
+</main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const S={users:[],gameTypes:[],sessions:[],scores:[],rankings:[],allrounders:[],gtFilter:'all',curProfile:null};
+let pendingNewPhoto=null, winCI, gtCI;
+const PALETTES=[['#EEEDFE','#3C3489'],['#E1F5EE','#0F6E56'],['#FAECE7','#993C1D'],['#FBEAF0','#993556'],['#E6F1FB','#185FA5'],['#EAF3DE','#3B6D11'],['#FAEEDA','#854F0B'],['#F1EFE8','#5F5E5A']];
+const _cm={};
+function pal(uid){if(!_cm[uid]){_cm[uid]=PALETTES[Object.keys(_cm).length%PALETTES.length]}return _cm[uid]}
+function avEl(uid,name,size=30,photoUrl=''){
+  const ini=(name||'?').slice(0,2).toUpperCase();
+  const [bg,fg]=pal(uid);const fs=Math.round(size*.37);
+  if(photoUrl)return `<div class="av" style="width:${size}px;height:${size}px"><img src="${photoUrl}" alt="${ini}" loading="lazy"/></div>`;
+  return `<div class="av" style="width:${size}px;height:${size}px;font-size:${fs}px;background:${bg};color:${fg}">${ini}</div>`;
+}
+function toast(msg,err=false){const el=document.getElementById('toast');el.textContent=msg;el.className='toast on'+(err?' err':'');clearTimeout(el._t);el._t=setTimeout(()=>el.className='toast',3200)}
+async function api(path,opts={}){
+  const r=await fetch(path,{headers:{'Content-Type':'application/json'},...opts,body:opts.body?JSON.stringify(opts.body):undefined});
+  const d=await r.json();if(!r.ok)throw new Error(d.error||'Request failed');return d;
+}
+async function loadAll(){
+  const [users,gameTypes,sessions,scores,rankings,allrounders]=await Promise.all([
+    api('/api/users'),api('/api/game-types'),api('/api/game-sessions'),
+    api('/api/scores'),api('/api/analytics?type=rankings'),api('/api/analytics?type=allrounders'),
+  ]);
+  Object.assign(S,{users,gameTypes,sessions,scores,rankings,allrounders});
+  S.users.forEach(u=>pal(u.user_id));
+}
+function go(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nav').forEach(n=>n.classList.remove('on'));
+  document.getElementById('page-'+id).classList.add('on');
+  const m={dashboard:0,players:1,games:2,'enter-scores':3,'add-player':4,profile:5};
+  document.querySelectorAll('.nav')[m[id]]?.classList.add('on');
+  if(id==='games')renderGtChips();
+  if(id==='profile')renderProfileChips();
+  if(id==='enter-scores')initEnterScores();
+}
+function renderDashboard(){
+  document.getElementById('m-players').textContent=S.users.length;
+  document.getElementById('m-sessions').textContent=S.sessions.length;
+  document.getElementById('m-types').textContent=S.gameTypes.length;
+  document.getElementById('m-scores').textContent=S.scores.length;
+  const rl=document.getElementById('rank-list');
+  if(!S.rankings.length){rl.innerHTML='<p style="color:var(--text3);font-size:13px;padding:.5rem">No data yet.</p>';return}
+  rl.innerHTML=S.rankings.map((r,i)=>{
+    const rc=i===0?'r1':i===1?'r2':i===2?'r3':'';
+    const u=S.users.find(u=>u.user_id===r.user_id);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:.5px solid var(--border)">
+      <span class="rank ${rc}">${i+1}</span>${avEl(r.user_id,r.username,30,u?.photo_url||'')}
+      <div style="flex:1"><div style="font-size:13px;font-weight:500">${r.username}</div>
+        <div class="prog" style="width:120px;margin-top:3px"><div class="pf" style="width:${Math.min(100,r.total_score/300*100)}%"></div></div></div>
+      <div style="text-align:right"><div style="font-size:14px;font-weight:700">${r.total_score}</div>
+        <div style="font-size:11px;color:var(--text3)">${r.win_pct}% wins</div></div></div>`;
+  }).join('');
+  if(winCI)winCI.destroy();
+  winCI=new Chart(document.getElementById('winChart'),{type:'bar',
+    data:{labels:S.rankings.map(r=>r.username),datasets:[{data:S.rankings.map(r=>r.win_pct),backgroundColor:'#2d5fa3',borderRadius:4,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%',font:{size:11}},grid:{color:'rgba(0,0,0,0.05)'}},x:{ticks:{font:{size:11}},grid:{display:false}}}}});
+  const rGT=S.gameTypes.find(g=>g.name==='Rummy'),cGT=S.gameTypes.find(g=>g.name==='Carroms');
+  if(gtCI)gtCI.destroy();
+  gtCI=new Chart(document.getElementById('gtChart'),{type:'bar',
+    data:{labels:S.rankings.map(r=>r.username),datasets:[
+      {label:'Rummy',data:S.rankings.map(r=>(r.game_types_played.find(g=>g.game_type_id===rGT?.game_type_id)||{}).total_score||0),backgroundColor:'#2d5fa3',borderRadius:3,borderSkipped:false},
+      {label:'Carroms',data:S.rankings.map(r=>(r.game_types_played.find(g=>g.game_type_id===cGT?.game_type_id)||{}).total_score||0),backgroundColor:'#179966',borderRadius:3,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:11}},grid:{display:false}},y:{ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,0.05)'}}}}});
+  const al=document.getElementById('ar-list');
+  al.innerHTML=S.allrounders.map(r=>{
+    const u=S.users.find(u=>u.user_id===r.user_id);
+    return `<div style="display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:.5px solid var(--border)">
+      ${avEl(r.user_id,r.username,30,u?.photo_url||'')}
+      <div style="flex:1"><div style="display:flex;align-items:center;gap:5px">
+        <span style="font-size:13px;font-weight:500">${r.username}</span>
+        ${r.is_allrounder?'<span class="b b-amber">All-rounder</span>':'<span class="b b-gray">Specialist</span>'}</div>
+        <div style="font-size:11px;color:var(--text3)">${r.game_types_played.length} type(s) · ${r.total_games} sessions</div></div>
+      <div style="font-size:12px;color:var(--text2)">${r.win_pct}% wins</div></div>`;
+  }).join('');
+}
+function renderPlayers(){
+  const tb=document.getElementById('players-tb');
+  if(!S.rankings.length){tb.innerHTML='<tr><td colspan="6" style="color:var(--text3);padding:1rem;text-align:center">No players yet.</td></tr>';return}
+  tb.innerHTML=S.rankings.map(r=>{
+    const u=S.users.find(u=>u.user_id===r.user_id);
+    return `<tr><td style="display:flex;align-items:center;gap:8px">${avEl(r.user_id,r.username,30,u?.photo_url||'')}<span style="font-weight:500">${r.username}</span></td>
+      <td>${r.total_games}</td><td style="font-weight:600">${r.total_score}</td>
+      <td><div style="display:flex;align-items:center;gap:6px"><div class="prog" style="width:55px"><div class="pf" style="width:${r.win_pct}%"></div></div><span>${r.win_pct}%</span></div></td>
+      <td><span class="b b-green">${r.total_wins} W</span></td>
+      <td>${r.game_types_played.length>=2?'<span class="b b-amber">All-rounder</span>':'<span class="b b-gray">Specialist</span>'}</td></tr>`;
+  }).join('');
+}
+function renderGtChips(){
+  const row=document.getElementById('gt-chips');
+  row.innerHTML=['All',...S.gameTypes.map(g=>g.name)].map(t=>`
+    <div class="chip ${(t==='All'&&S.gtFilter==='all')||(t===S.gtFilter)?'on':''}" onclick="filterGt('${t}',this)">${t}</div>`).join('');
+  renderSessions();
+}
+function filterGt(f,el){S.gtFilter=f==='All'?'all':f;document.querySelectorAll('#gt-chips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');renderSessions()}
+function renderSessions(){
+  const c=document.getElementById('sessions-list');
+  let sess=S.sessions;
+  if(S.gtFilter!=='all'){const gt=S.gameTypes.find(g=>g.name===S.gtFilter);sess=sess.filter(s=>s.game_type_id===gt?.game_type_id)}
+  if(!sess.length){c.innerHTML='<p style="color:var(--text3);font-size:13px">No sessions found.</p>';return}
+  c.innerHTML=[...sess].reverse().map(session=>{
+    const gt=S.gameTypes.find(g=>g.game_type_id===session.game_type_id);
+    const sc=S.scores.filter(s=>s.game_id===session.game_id).sort((a,b)=>b.score-a.score);
+    const rows=sc.map((s,i)=>{const u=S.users.find(u=>u.user_id===s.user_id);
+      return `<tr><td style="display:flex;align-items:center;gap:8px">${avEl(s.user_id,u?.username||'?',26,u?.photo_url||'')}<span>${u?.username||s.user_id}</span></td>
+        <td style="font-weight:600">${s.score}</td>
+        <td><span class="b ${s.is_winner?'b-green':'b-gray'}">${s.is_winner?'Winner':'—'}</span></td>
+        <td style="color:var(--text3)">#${i+1}</td></tr>`;}).join('');
+    return `<div class="card" style="margin-bottom:.75rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:15px;font-weight:700">${session.game_id}</span>
+          <span class="b b-blue">${gt?.name||''}</span></div>
+        <span style="font-size:12px;color:var(--text3)">${(session.played_at||'').split('T')[0]}</span></div>
+      <table><thead><tr><th>Player</th><th>Score</th><th>Result</th><th>Rank</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }).join('');
+}
+function initEnterScores(){
+  document.getElementById('inp-gt').innerHTML=S.gameTypes.map(g=>`<option value="${g.game_type_id}">${g.name}</option>`).join('');
+  const e=document.getElementById('score-entries');e.innerHTML='';addSRow();addSRow();
+  const recent=document.getElementById('recent-sess');
+  const last=[...S.sessions].reverse().slice(0,3);
+  if(!last.length){recent.innerHTML='<p style="color:var(--text3);font-size:13px">No sessions yet.</p>';return}
+  recent.innerHTML=last.map(s=>{
+    const gt=S.gameTypes.find(g=>g.game_type_id===s.game_type_id);
+    const top=S.scores.filter(sc=>sc.game_id===s.game_id).sort((a,b)=>b.score-a.score)[0];
+    const w=top?S.users.find(u=>u.user_id===top.user_id):null;
+    return `<div style="padding:9px 0;border-bottom:.5px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div><div style="font-weight:500">${s.game_id} <span class="b b-blue" style="font-size:10px">${gt?.name||''}</span></div>
+        <div style="font-size:11px;color:var(--text3)">${(s.played_at||'').split('T')[0]}</div></div>
+      ${w?`<div style="font-size:12px;color:var(--text2)">Winner: <strong>${w.username}</strong> (${top.score})</div>`:''}
+    </div>`;}).join('');
+}
+function addSRow(){
+  const c=document.getElementById('score-entries'),d=document.createElement('div');d.className='srow';
+  d.innerHTML=`<select>${S.users.map(u=>`<option value="${u.user_id}">${u.username}</option>`).join('')}</select>
+    <input type="number" placeholder="Score" min="0"/>
+    <button class="btn btn-sm btn-d" onclick="this.closest('.srow').remove()">✕</button>`;
+  c.appendChild(d);
+}
+async function submitScores(){
+  const game_id=document.getElementById('inp-gid').value.trim();
+  const game_type_id=document.getElementById('inp-gt').value;
+  const rows=document.querySelectorAll('.srow'),scores=[];
+  rows.forEach(r=>{const uid=r.querySelector('select').value,sc=parseInt(r.querySelector('input').value);if(uid&&!isNaN(sc))scores.push({user_id:uid,score:sc})});
+  if(!game_id)return toast('Enter a game ID.',true);
+  if(!scores.length)return toast('Add at least one score.',true);
+  try{
+    await api('/api/game-sessions',{method:'POST',body:{game_id,game_type_id}});
+    await api('/api/scores',{method:'POST',body:{game_id,scores}});
+    toast(`Session ${game_id} saved!`);document.getElementById('inp-gid').value='';
+    await loadAll();renderDashboard();renderPlayers();initEnterScores();
+  }catch(e){toast(e.message,true)}
+}
+function previewNewPhoto(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    pendingNewPhoto={data:e.target.result.split(',')[1],name:file.name,mime:file.type};
+    const zone=document.getElementById('new-pzone');
+    let img=zone.querySelector('img');
+    if(!img){img=document.createElement('img');img.style.cssText='width:100%;height:100%;object-fit:cover;position:absolute;inset:0';zone.appendChild(img)}
+    img.src=e.target.result;zone.querySelector('.pz-icon').style.display='none';
+  };reader.readAsDataURL(file);
+}
+async function uploadPhoto(user_id,photoData,ringId=null){
+  if(ringId)document.getElementById(ringId).style.display='block';
+  try{
+    const result=await api('/api/upload-photo',{method:'POST',body:{user_id,file_data:photoData.data,file_name:photoData.name,mime_type:photoData.mime}});
+    const u=S.users.find(u=>u.user_id===user_id);
+    if(u){u.photo_url=result.photo_url;u.photo_drive_id=result.photo_drive_id}
+    return result;
+  }finally{if(ringId)document.getElementById(ringId).style.display='none'}
+}
+async function addPlayer(){
+  const username=document.getElementById('inp-uname').value.trim();
+  if(!username)return toast('Enter a username.',true);
+  try{
+    const user=await api('/api/users',{method:'POST',body:{username}});
+    if(pendingNewPhoto){await uploadPhoto(user.user_id,pendingNewPhoto,'new-pring');pendingNewPhoto=null}
+    toast(`Player "${username}" added!`);document.getElementById('inp-uname').value='';
+    const zone=document.getElementById('new-pzone');
+    const img=zone.querySelector('img');if(img)img.remove();
+    zone.querySelector('.pz-icon').style.display='';
+    await loadAll();renderDashboard();renderPlayers();
+  }catch(e){toast(e.message,true)}
+}
+function renderProfileChips(){
+  const row=document.getElementById('profile-chips');
+  row.innerHTML=S.users.map((u,i)=>`
+    <div class="chip ${(!S.curProfile&&i===0)||S.curProfile===u.user_id?'on':''}" onclick="selProfile('${u.user_id}',this)">${u.username}</div>`).join('');
+  if(!S.curProfile&&S.users.length)selProfile(S.users[0].user_id,document.querySelector('#profile-chips .chip'));
+}
+function selProfile(uid,el){
+  document.querySelectorAll('#profile-chips .chip').forEach(c=>c.classList.remove('on'));
+  el?.classList.add('on');S.curProfile=uid;renderProfile(uid);
+}
+async function renderProfile(uid){
+  const content=document.getElementById('profile-content');
+  content.innerHTML='<div class="spin-wrap"><div class="spinner"></div></div>';
+  try{
+    const p=await api(`/api/analytics?type=player&user_id=${uid}`);
+    const u=S.users.find(u=>u.user_id===uid)||{};
+    const rank=S.rankings.findIndex(r=>r.user_id===uid)+1;
+    const byType=(p.game_types_played||[]).map(gt=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:.5px solid var(--border)">
+        <div><div style="font-size:13px;font-weight:500">${gt.game_type_name}</div>
+          <div style="font-size:11px;color:var(--text3)">${gt.total_games} games · ${gt.total_wins} wins</div></div>
+        <div style="text-align:right"><div style="font-weight:600">${gt.total_score} pts</div>
+          <div style="font-size:11px;color:var(--text3)">${gt.total_games>0?Math.round(gt.total_wins/gt.total_games*100):0}% win rate</div></div>
+      </div>`).join('')||'<p style="color:var(--text3);font-size:13px">No game data yet.</p>';
+    const hist=(p.history||[]).map(h=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:.5px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="b b-blue">${h.game_type_name||''}</span>
+          <span style="font-size:13px;color:var(--text2)">${h.game_id}</span></div>
+        <div style="display:flex;align-items:center;gap:9px">
+          <span style="font-weight:600">${h.score} pts</span>
+          <span class="b ${h.is_winner?'b-green':'b-gray'}">${h.is_winner?'Won':'Lost'}</span>
+          <span style="font-size:11px;color:var(--text3)">${(h.played_at||'').split('T')[0]}</span>
+        </div></div>`).join('')||'<p style="color:var(--text3);font-size:13px">No games played yet.</p>';
+    const ringId=`prof-ring-${uid}`;
+    content.innerHTML=`
+      <div style="display:flex;align-items:flex-start;gap:20px;margin-bottom:1.5rem;flex-wrap:wrap">
+        <div style="position:relative">
+          <div class="photo-zone" id="prof-pzone-${uid}" style="width:88px;height:88px" onclick="document.getElementById('prof-pfile-${uid}').click()">
+            ${u.photo_url?`<img src="${u.photo_url}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0"/>`
+              :`<span class="pz-icon" style="font-size:20px;color:var(--text3)">${(p.username||'?').slice(0,2).toUpperCase()}</span>`}
+            <div class="photo-overlay"><span>Change<br>Photo</span></div>
+            <div class="upload-ring" id="${ringId}"></div>
+          </div>
+          <input type="file" id="prof-pfile-${uid}" accept="image/*" style="display:none" onchange="handleProfPhoto(this,'${uid}')"/>
+        </div>
+        <div style="flex:1;min-width:160px">
+          <div style="font-size:20px;font-weight:700;letter-spacing:-.02em">${p.username}</div>
+          <div style="font-size:13px;color:var(--text2);margin-top:2px">Rank #${rank} overall · ${p.total_games} sessions</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:4px">Click photo to upload or update · stored on Google Drive</div>
+        </div>
+      </div>
+      <div class="mrow">
+        <div class="mc"><div class="ml">Rank</div><div class="mv">#${rank}</div></div>
+        <div class="mc"><div class="ml">Total score</div><div class="mv">${p.total_score}</div></div>
+        <div class="mc"><div class="ml">Win rate</div><div class="mv">${p.win_pct}%</div></div>
+        <div class="mc"><div class="ml">Wins</div><div class="mv">${p.total_wins}</div></div>
+      </div>
+      <div class="g2">
+        <div class="card"><div class="ct">By game type</div>${byType}</div>
+        <div class="card"><div class="ct">Game history</div>${hist}</div>
+      </div>`;
+  }catch(e){content.innerHTML=`<p style="color:var(--red-txt);padding:1rem">${e.message}</p>`}
+}
+async function handleProfPhoto(input,uid){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    const data={data:e.target.result.split(',')[1],name:file.name,mime:file.type};
+    const zone=document.getElementById(`prof-pzone-${uid}`);
+    let img=zone.querySelector('img');
+    if(!img){img=document.createElement('img');img.style.cssText='width:100%;height:100%;object-fit:cover;position:absolute;inset:0';zone.appendChild(img)}
+    img.src=e.target.result;
+    try{await uploadPhoto(uid,data,`prof-ring-${uid}`);toast('Profile photo updated!');await loadAll();renderDashboard();renderPlayers();}
+    catch(err){toast(err.message,true)}
+  };reader.readAsDataURL(file);
+}
+(async()=>{
+  try{await loadAll();renderDashboard();renderPlayers();}
+  catch(e){document.querySelector('.main').innerHTML=`<div style="padding:2rem;color:var(--red-txt)"><h2 style="margin-bottom:.5rem">Cannot connect to backend</h2><p style="font-size:13px">Check Vercel environment variables.<br>Error: ${e.message}</p></div>`;}
+})();
+</script>
+</body>
+</html>
