@@ -33,7 +33,7 @@ export function HomeDashboardPage({ data, paletteMap, onOpenGames }) {
                 label={`Welcome back, ${data.me?.username || "Player"}`}
                 color="primary"
                 variant="outlined"
-                sx={{ width: "fit-content" }}
+                sx={{ width: "fit-content", borderRadius: 2 }}
               />
               <Typography variant="h3" sx={{ fontSize: { xs: 34, md: 46 }, lineHeight: 1.05 }}>
                 Your games, your momentum, one polished workspace.
@@ -46,14 +46,14 @@ export function HomeDashboardPage({ data, paletteMap, onOpenGames }) {
                   variant="contained"
                   endIcon={<ArrowForwardRoundedIcon />}
                   onClick={onOpenGames}
-                  sx={{ borderRadius: 999, px: 3 }}
+                  sx={{ borderRadius: 2.5, px: 3 }}
                 >
                   Open my games
                 </Button>
                 <Chip
                   icon={<EmojiEventsRoundedIcon />}
                   label={myRank > 0 ? `Currently ranked #${myRank}` : "No rank yet"}
-                  sx={{ borderRadius: 999, height: 40 }}
+                  sx={{ borderRadius: 2.5, height: 40 }}
                 />
               </Stack>
             </Stack>
@@ -62,7 +62,7 @@ export function HomeDashboardPage({ data, paletteMap, onOpenGames }) {
             <Box
               sx={{
                 p: 3,
-                borderRadius: 5,
+                borderRadius: 4,
                 background:
                   "linear-gradient(160deg, rgba(36,87,166,0.10), rgba(11,122,117,0.10))",
               }}
@@ -89,7 +89,7 @@ export function HomeDashboardPage({ data, paletteMap, onOpenGames }) {
                   <LinearProgress
                     variant="determinate"
                     value={data.me?.win_pct || 0}
-                    sx={{ height: 10, borderRadius: 999 }}
+                    sx={{ height: 10, borderRadius: 2 }}
                   />
                   <Typography variant="body2" fontWeight={700}>
                     {data.me?.win_pct || 0}% over {data.me?.total_games || 0} sessions
@@ -142,7 +142,12 @@ export function HomeDashboardPage({ data, paletteMap, onOpenGames }) {
                         </Stack>
                         <Stack direction="row" spacing={1} flexWrap="wrap">
                           {session.members.slice(0, 4).map((member) => (
-                            <Chip key={member.access_id} label={member.username} variant="outlined" />
+                            <Chip
+                              key={member.access_id}
+                              label={member.username}
+                              variant="outlined"
+                              sx={{ borderRadius: 2 }}
+                            />
                           ))}
                         </Stack>
                       </Stack>
@@ -181,6 +186,7 @@ export function HomeDashboardPage({ data, paletteMap, onOpenGames }) {
                       label={item.total_score}
                       color={item.user_id === data.me?.user_id ? "primary" : "default"}
                       variant={item.user_id === data.me?.user_id ? "filled" : "outlined"}
+                      sx={{ borderRadius: 2 }}
                     />
                   </Stack>
                 );
