@@ -1,7 +1,7 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
     "api/_ai_internal/*.py": {
-      "runtime": "python3.12",
       "maxDuration": 60
     }
   }
