@@ -1,10 +1,12 @@
 from .analytics import (
     compute_pre_game_probabilities,
+    game_rankings_summary,
     head_to_head_summary,
     insight_is_fresh,
     load_dataset,
     latest_matching_insight,
     month_key,
+    player_summary,
     rivalry_candidates,
     round_scores,
     season_summary,
@@ -129,6 +131,82 @@ def generate_stats_chat(payload):
     gemini = GeminiClient()
     users = user_map(data)
     game_types = game_type_map(data)
+    users_by_name = {user["username"].lower(): user for user in data["users"]}
+    games_by_name = {game["name"].lower(): game for game in data["game_types"]}
+
+    def resolve_user_id(text):
+        lower = str(text or "").strip().lower()
+        if not lower:
+            return None
+        if lower in users_by_name:
+            return users_by_name[lower]["user_id"]
+        for name, user in users_by_name.items():
+            if lower in name or name in lower:
+                return user["user_id"]
+        return None
+
+    def resolve_game_type_id(text):
+        lower = str(text or "").strip().lower()
+        if not lower:
+            return None
+        if lower in games_by_name:
+            return games_by_name[lower]["game_type_id"]
+        for name, game in games_by_name.items():
+            if lower in name or name in lower:
+                return game["game_type_id"]
+        return None
+
+    def fallback_plan_for_message(message):
+        lower = message.lower()
+        resolved_game_type = None
+        for game in data["game_types"]:
+            if game["name"].lower() in lower:
+                resolved_game_type = game["game_type_id"]
+                break
+
+        mentioned_users = []
+        for user in data["users"]:
+            username = user["username"].lower()
+            if username in lower or any(part and part in lower for part in username.split()):
+                mentioned_users.append(user["user_id"])
+
+        if "rival" in lower or "rivalry" in lower:
+            return {"tool": "rivalry_candidates", "arguments": {"game_type_id": resolved_game_type or ""}}
+
+        if len(mentioned_users) >= 2 and ("head-to-head" in lower or "against" in lower or "vs" in lower):
+            return {
+                "tool": "head_to_head",
+                "arguments": {
+                    "user_a": users[mentioned_users[0]]["username"],
+                    "user_b": users[mentioned_users[1]]["username"],
+                    "game_type": game_types.get(resolved_game_type, {}).get("name", ""),
+                },
+            }
+
+        if "win rate" in lower or "best" in lower or "top" in lower or "leader" in lower or "rank" in lower:
+            if mentioned_users:
+                return {
+                    "tool": "player_summary",
+                    "arguments": {
+                        "user": users[mentioned_users[0]]["username"],
+                        "game_type": game_types.get(resolved_game_type, {}).get("name", ""),
+                    },
+                }
+            return {
+                "tool": "game_rankings",
+                "arguments": {"game_type": game_types.get(resolved_game_type, {}).get("name", "")},
+            }
+
+        if mentioned_users:
+            return {
+                "tool": "player_summary",
+                "arguments": {
+                    "user": users[mentioned_users[0]]["username"],
+                    "game_type": game_types.get(resolved_game_type, {}).get("name", ""),
+                },
+            }
+
+        return {"tool": "group_summary", "arguments": {}}
 
     tool_catalog = {
         "group_summary": {
@@ -148,23 +226,28 @@ Available tools:
 1. group_summary
 2. rivalry_candidates
 3. head_to_head(user_a, user_b, optional game_type_id)
+4. game_rankings(optional game_type_id)
+5. player_summary(user, optional game_type_id)
 
 Return JSON only with this schema:
 {{
-  "tool": "group_summary|rivalry_candidates|head_to_head",
+  "tool": "group_summary|rivalry_candidates|head_to_head|game_rankings|player_summary",
   "arguments": {{}}
 }}
 Choose exactly one tool.
 """
-    plan = gemini.generate_json(planner_prompt, use_reasoning=True)
+    try:
+        plan = gemini.generate_json(planner_prompt, use_reasoning=True)
+    except Exception:
+        plan = fallback_plan_for_message(payload["message"])
     tool = plan.get("tool", "group_summary")
     tool_result = None
 
     if tool == "head_to_head":
         arg_names = plan.get("arguments", {})
-        user_a = next((u["user_id"] for u in data["users"] if u["username"].lower() == str(arg_names.get("user_a", "")).lower()), None)
-        user_b = next((u["user_id"] for u in data["users"] if u["username"].lower() == str(arg_names.get("user_b", "")).lower()), None)
-        game_type_id = next((g["game_type_id"] for g in data["game_types"] if g["name"].lower() == str(arg_names.get("game_type", "")).lower()), None)
+        user_a = resolve_user_id(arg_names.get("user_a", ""))
+        user_b = resolve_user_id(arg_names.get("user_b", ""))
+        game_type_id = resolve_game_type_id(arg_names.get("game_type", ""))
         if user_a and user_b:
             tool_result = head_to_head_summary(data, user_a, user_b, game_type_id)
             tool_result["players"] = [users[user_a]["username"], users[user_b]["username"]]
@@ -172,8 +255,26 @@ Choose exactly one tool.
                 tool_result["game_type"] = game_types[game_type_id]["name"]
         else:
             tool_result = {"error": "Could not resolve the two players from the question."}
+    elif tool == "game_rankings":
+        arg_names = plan.get("arguments", {})
+        game_type_id = resolve_game_type_id(arg_names.get("game_type", ""))
+        tool_result = game_rankings_summary(data, game_type_id, limit=10)
+        if game_type_id:
+            tool_result["game_type"] = game_types[game_type_id]["name"]
+    elif tool == "player_summary":
+        arg_names = plan.get("arguments", {})
+        user_id = resolve_user_id(arg_names.get("user", ""))
+        game_type_id = resolve_game_type_id(arg_names.get("game_type", ""))
+        if user_id:
+            tool_result = player_summary(data, user_id, game_type_id)
+        else:
+            tool_result = {"error": "Could not resolve the player from the question."}
     elif tool == "rivalry_candidates":
-        tool_result = {"rivalries": rivalry_candidates(data, limit=5)}
+        arg_names = plan.get("arguments", {})
+        game_type_id = resolve_game_type_id(arg_names.get("game_type_id") or arg_names.get("game_type", ""))
+        tool_result = {"rivalries": rivalry_candidates(data, game_type_id=game_type_id, limit=5)}
+        if game_type_id:
+            tool_result["game_type"] = game_types[game_type_id]["name"]
     else:
         tool_result = tool_catalog["group_summary"]
 

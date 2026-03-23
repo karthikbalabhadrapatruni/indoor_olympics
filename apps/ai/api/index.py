@@ -20,6 +20,12 @@ def _require_internal_token():
     return None
 
 
+def _error_response(exc: Exception):
+    message = str(exc)
+    status = 503 if "quota" in message.lower() or "resource_exhausted" in message.lower() else 500
+    return jsonify({"error": message}), status
+
+
 @app.post("/api/match-commentary")
 def match_commentary():
     unauthorized = _require_internal_token()
@@ -31,7 +37,7 @@ def match_commentary():
     try:
         return jsonify(generate_match_commentary(payload))
     except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+        return _error_response(exc)
 
 
 @app.post("/api/pre-game-win-probability")
@@ -45,7 +51,7 @@ def pre_game_win_probability():
     try:
         return jsonify(generate_pre_game_win_probability(payload))
     except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+        return _error_response(exc)
 
 
 @app.post("/api/stats-chat")
@@ -59,7 +65,7 @@ def stats_chat():
     try:
         return jsonify(generate_stats_chat(payload))
     except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+        return _error_response(exc)
 
 
 @app.post("/api/season-recap")
@@ -71,7 +77,7 @@ def season_recap():
     try:
         return jsonify(generate_season_recap(payload))
     except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+        return _error_response(exc)
 
 
 @app.post("/api/rivalry-tracker")
@@ -83,7 +89,7 @@ def rivalry_tracker():
     try:
         return jsonify(generate_rivalry_tracker(payload))
     except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+        return _error_response(exc)
 
 
 @app.get("/")

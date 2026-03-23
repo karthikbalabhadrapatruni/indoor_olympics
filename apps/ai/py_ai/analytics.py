@@ -200,6 +200,86 @@ def head_to_head_summary(data, user_a: str, user_b: str, game_type_id: str | Non
     return {"games": games, "wins": wins}
 
 
+def game_rankings_summary(data, game_type_id: str | None = None, limit: int = 10):
+    users = user_map(data)
+    game_types = game_type_map(data)
+    rows = [
+        row
+        for row in data["stats"]
+        if (not game_type_id or row["game_type_id"] == game_type_id)
+    ]
+
+    ranked = []
+    for row in rows:
+        total_games = int(row.get("total_games", 0))
+        total_wins = int(row.get("total_wins", 0))
+        ranked.append(
+            {
+                "user_id": row["user_id"],
+                "username": users.get(row["user_id"], {}).get("username", row["user_id"]),
+                "game_type_id": row["game_type_id"],
+                "game_type_name": game_types.get(row["game_type_id"], {}).get("name", row["game_type_id"]),
+                "total_games": total_games,
+                "total_wins": total_wins,
+                "win_rate": round((total_wins / total_games) * 100, 1) if total_games else 0.0,
+                "total_score": float(row.get("total_score", 0)),
+            }
+        )
+
+    ranked.sort(
+        key=lambda item: (item["total_wins"], item["win_rate"], item["total_games"], item["total_score"]),
+        reverse=True,
+    )
+    return {"items": ranked[:limit]}
+
+
+def player_summary(data, user_id: str, game_type_id: str | None = None):
+    users = user_map(data)
+    game_types = game_type_map(data)
+    stats_rows = [
+        row for row in data["stats"] if row["user_id"] == user_id and (not game_type_id or row["game_type_id"] == game_type_id)
+    ]
+
+    if not stats_rows:
+        return {
+            "user_id": user_id,
+            "username": users.get(user_id, {}).get("username", user_id),
+            "game_type_name": game_types.get(game_type_id, {}).get("name", game_type_id) if game_type_id else "",
+            "total_games": 0,
+            "total_wins": 0,
+            "win_rate": 0.0,
+            "total_score": 0.0,
+        }
+
+    total_games = sum(int(row.get("total_games", 0)) for row in stats_rows)
+    total_wins = sum(int(row.get("total_wins", 0)) for row in stats_rows)
+    total_score = sum(float(row.get("total_score", 0)) for row in stats_rows)
+
+    return {
+        "user_id": user_id,
+        "username": users.get(user_id, {}).get("username", user_id),
+        "game_type_name": game_types.get(game_type_id, {}).get("name", game_type_id) if game_type_id else "All games",
+        "total_games": total_games,
+        "total_wins": total_wins,
+        "win_rate": round((total_wins / total_games) * 100, 1) if total_games else 0.0,
+        "total_score": total_score,
+        "by_game_type": [
+            {
+                "game_type_id": row["game_type_id"],
+                "game_type_name": game_types.get(row["game_type_id"], {}).get("name", row["game_type_id"]),
+                "total_games": int(row.get("total_games", 0)),
+                "total_wins": int(row.get("total_wins", 0)),
+                "win_rate": round(
+                    (int(row.get("total_wins", 0)) / int(row.get("total_games", 0))) * 100, 1
+                )
+                if int(row.get("total_games", 0))
+                else 0.0,
+            }
+            for row in stats_rows
+        ],
+    }
+
+
 def rivalry_candidates(data, game_type_id: str | None = None, limit: int = 5):
     users = user_map(data)
     pair_counts = defaultdict(lambda: {"games": 0, "close_games": 0, "wins": defaultdict(int)})
