@@ -4,8 +4,12 @@ export async function invokeInternalAiWorkflow(request, workflow, payload) {
     throw new Error("AI_INTERNAL_TOKEN is not configured");
   }
 
-  const origin = new URL(request.url).origin;
-  const targetUrl = `${origin}/api/_ai_internal/${workflow}`;
+  const aiServiceUrl = process.env.AI_SERVICE_URL;
+  if (!aiServiceUrl) {
+    throw new Error("AI_SERVICE_URL is not configured");
+  }
+
+  const targetUrl = `${aiServiceUrl.replace(/\/$/, "")}/api/${workflow}`;
   console.log("[ai] invoking internal workflow", {
     workflow,
     targetUrl,
