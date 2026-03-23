@@ -35,6 +35,23 @@ Add these 4 variables:
 
 Then click **Redeploy** from the Deployments tab and the Next.js app will come up fully configured.
 
+## Additional AI env vars
+
+For the Gemini workflows, also add:
+
+| Name | Value |
+|------|-------|
+| `GEMINI_API_KEY` | Your Gemini API key |
+| `AI_INTERNAL_TOKEN` | A long random shared secret for Node -> Python internal calls |
+| `GEMINI_TEXT_MODEL` | `gemini-2.5-flash` |
+| `GEMINI_REASONING_MODEL` | `gemini-2.5-pro` |
+
+## Additional AI sheet tab
+
+Add this tab too:
+
+- **ai_insights**: `insight_id | type | scope_type | scope_id | game_id | user_id | period_key | content | model | created_at | metadata_json`
+
 ## Google Sheet setup reminder
 
 Make sure your sheet has these tabs with row-1 headers:

@@ -10,6 +10,7 @@ import { error, json } from "../../../lib/http";
 import { requireSessionUser } from "../../../lib/server-auth";
 import { findUserByEmail } from "../../../lib/user-service";
 import { acquireScoreWriteLock, releaseScoreWriteLock } from "../../../lib/write-lock";
+import { invokeInternalAiWorkflow } from "../../../lib/ai/internal";
 
 export const runtime = "nodejs";
 
@@ -113,6 +114,15 @@ export async function POST(request) {
     }
 
     globalThis.__gtCacheInvalidated = Date.now();
+    try {
+      await invokeInternalAiWorkflow(request, "match-commentary", {
+        game_id,
+        round_number: nextRoundNumber,
+      });
+    } catch (aiError) {
+      console.error("match commentary workflow failed", aiError);
+    }
+
     return json({ written, round_number: nextRoundNumber }, { status: 201 });
   } catch (err) {
     console.error(err);

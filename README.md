@@ -202,3 +202,41 @@ curl -X POST https://your-app.vercel.app/api/scores \
 - `lib/google.js` replaces escaped `\\n` sequences in `GOOGLE_PRIVATE_KEY` at runtime.
 - Uploaded photos are stored in Google Drive and their public thumbnail URL is written back into the `users` sheet.
 - The bootstrap route uses a short in-memory cache to reduce repeated Sheets reads.
+
+## Gemini AI Workflows
+
+This repo now includes Gemini-powered Python workflows deployed as Vercel Python Functions behind authenticated Next.js proxy routes.
+
+Implemented workflows:
+
+- `POST /api/ai/match-commentary`
+- `POST /api/ai/pre-game-win-probability`
+- `POST /api/ai/stats-chat`
+- `POST /api/ai/season-recap`
+- `POST /api/ai/rivalry-tracker`
+
+Architecture:
+
+- `app/api/ai/[workflow]/route.js`
+  Authenticated Next.js proxy layer
+- `api/_ai_internal/*.py`
+  Internal Python Vercel Functions
+- `py_ai/`
+  Shared Gemini, Sheets, analytics, and workflow modules
+
+Additional environment variables required:
+
+```bash
+GEMINI_API_KEY=...
+AI_INTERNAL_TOKEN=...
+GEMINI_TEXT_MODEL=gemini-2.5-flash
+GEMINI_REASONING_MODEL=gemini-2.5-pro
+```
+
+Additional Google Sheet tab required:
+
+`ai_insights`
+
+```text
+insight_id | type | scope_type | scope_id | game_id | user_id | period_key | content | model | created_at | metadata_json
+```

@@ -116,6 +116,10 @@ export async function GET(request) {
           ...session,
           round_count: roundCount,
           session_leaderboard: sessionLeaderboard,
+          latest_commentary:
+            data.insights
+              .filter((entry) => entry.type === "match_commentary" && entry.game_id === session.game_id)
+              .sort((left, right) => String(right.created_at).localeCompare(String(left.created_at)))[0] || null,
         };
       })
       .sort((left, right) => {

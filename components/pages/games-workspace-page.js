@@ -300,6 +300,24 @@ export function GamesWorkspacePage({
                       </Stack>
                     </Box>
 
+                    {session.latest_commentary?.content ? (
+                      <Box
+                        sx={{
+                          p: 1.75,
+                          borderRadius: 3,
+                          bgcolor: mutedSurface,
+                          border: `1px solid ${theme.palette.divider}`,
+                        }}
+                      >
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75 }}>
+                          AI match commentary
+                        </Typography>
+                        <Typography sx={{ whiteSpace: "pre-line" }}>
+                          {session.latest_commentary.content}
+                        </Typography>
+                      </Box>
+                    ) : null}
+
                     <Box>
                       <Typography variant="subtitle2" sx={{ mb: 1 }}>
                         Round logs
