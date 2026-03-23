@@ -462,22 +462,6 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
     }
   }
 
-  async function handleGenerateCommentary(game) {
-    try {
-      const result = await apiRequest("/api/ai/debug-commentary", {
-        method: "POST",
-        body: {
-          game_id: game.game_id,
-        },
-      });
-      await refresh();
-      setListRefreshKey((current) => current + 1);
-      showToast(result.cached ? "AI commentary loaded from cache" : "AI commentary generated");
-    } catch (requestError) {
-      showToast(requestError.message, "error");
-    }
-  }
-
   async function submitScores() {
     if (!scoreDialogState.game) {
       return;
@@ -601,7 +585,6 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
             onOpenSessionLeaderboard={(game) => setSessionLeaderboardState({ game })}
             onCloseSessionLeaderboard={() => setSessionLeaderboardState({ game: null })}
             onEndGame={handleEndGame}
-            onGenerateCommentary={handleGenerateCommentary}
             sessions={gamesState.items}
             sessionsPagination={gamesState.pagination}
             sessionsSorting={gamesState.sort}

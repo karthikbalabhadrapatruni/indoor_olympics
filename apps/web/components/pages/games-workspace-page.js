@@ -4,7 +4,6 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import EmojiEventsRoundedIcon from "@mui/icons-material/EmojiEventsRounded";
 import FlagRoundedIcon from "@mui/icons-material/FlagRounded";
 import GroupAddRoundedIcon from "@mui/icons-material/GroupAddRounded";
-import SmartToyRoundedIcon from "@mui/icons-material/SmartToyRounded";
 import ScoreboardRoundedIcon from "@mui/icons-material/ScoreboardRounded";
 import {
   alpha,
@@ -59,7 +58,6 @@ export function GamesWorkspacePage({
   onOpenSessionLeaderboard,
   onCloseSessionLeaderboard,
   onEndGame,
-  onGenerateCommentary,
   sessions,
   sessionsPagination,
   sessionsSorting,
@@ -245,13 +243,6 @@ export function GamesWorkspacePage({
                           onClick={() => onOpenSessionLeaderboard(session)}
                         >
                           View leaderboard
-                        </Button>
-                        <Button
-                          startIcon={<SmartToyRoundedIcon />}
-                          variant="outlined"
-                          onClick={() => onGenerateCommentary(session)}
-                        >
-                          Test AI
                         </Button>
                         {session.can_manage && session.status !== "ended" ? (
                           <Button
