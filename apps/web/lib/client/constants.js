@@ -15,6 +15,11 @@ export const NAV_ITEMS = [
     description: "Create games, add players, and log scores for rooms you can access",
   },
   {
+    id: "ai",
+    label: "AI Studio",
+    description: "Chat with your stats, generate rivalry stories, and build season recaps",
+  },
+  {
     id: "leaderboard",
     label: "Leaderboard",
     description: "See rankings, win rates, and multi-game performance",

@@ -50,10 +50,12 @@ export function GamesWorkspacePage({
   onChangeUsersToAdd,
   onSubmitAddPlayers,
   scoreDialogState,
+  preGameProbabilityState,
   onOpenScoreDialog,
   onCloseScoreDialog,
   onChangeScoreEntry,
   onSubmitScores,
+  onRefreshPreGameProbability,
   sessionLeaderboardState,
   onOpenSessionLeaderboard,
   onCloseSessionLeaderboard,
@@ -445,6 +447,79 @@ export function GamesWorkspacePage({
             <Typography variant="body2" color="text.secondary">
               This will be saved as Round {scoreDialogState.nextRoundNumber || 1}.
             </Typography>
+            <Box
+              sx={{
+                p: 1.75,
+                borderRadius: 3,
+                bgcolor: mutedSurface,
+                border: `1px solid ${theme.palette.divider}`,
+              }}
+            >
+              <Stack spacing={1.25}>
+                <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" spacing={1}>
+                  <Stack spacing={0.25}>
+                    <Typography variant="subtitle2">Pre-game win outlook</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Generated from past results for this lineup and game type.
+                    </Typography>
+                  </Stack>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={onRefreshPreGameProbability}
+                    disabled={!scoreDialogState.game || preGameProbabilityState.loading}
+                  >
+                    {preGameProbabilityState.loading ? "Refreshing..." : "Refresh"}
+                  </Button>
+                </Stack>
+                {preGameProbabilityState.loading ? (
+                  <Typography color="text.secondary">Calculating probability split...</Typography>
+                ) : preGameProbabilityState.probabilities?.length ? (
+                  <Stack spacing={1}>
+                    {preGameProbabilityState.probabilities.map((entry) => {
+                      const user = data.users.find((item) => item.user_id === entry.user_id);
+                      return (
+                        <Box key={`probability-${entry.user_id}`}>
+                          <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.75 }}>
+                            <Typography variant="body2" fontWeight={600}>
+                              {user?.username || entry.username || entry.user_id}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {Number(entry.probability || 0).toFixed(1)}%
+                            </Typography>
+                          </Stack>
+                          <Box
+                            sx={{
+                              height: 8,
+                              borderRadius: 999,
+                              bgcolor: softSurface,
+                              overflow: "hidden",
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                width: `${Math.max(4, Math.min(100, Number(entry.probability || 0)))}%`,
+                                height: "100%",
+                                bgcolor: theme.palette.primary.main,
+                              }}
+                            />
+                          </Box>
+                        </Box>
+                      );
+                    })}
+                    {preGameProbabilityState.narrative ? (
+                      <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "pre-line" }}>
+                        {preGameProbabilityState.narrative}
+                      </Typography>
+                    ) : null}
+                  </Stack>
+                ) : (
+                  <Typography color="text.secondary">
+                    Open a room with at least two players to generate a pre-game forecast.
+                  </Typography>
+                )}
+              </Stack>
+            </Box>
             {scoreDialogState.entries.map((entry, index) => {
               const user = data.users.find((item) => item.user_id === entry.user_id);
               return (

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AuthLanding } from "./auth/auth-landing";
 import { OnboardingScreen } from "./auth/onboarding-screen";
 import { AppShell } from "./layout/app-shell";
+import { AiHubPage } from "./pages/ai-hub-page";
 import { GameTypesPage } from "./pages/game-types-page";
 import { HomeDashboardPage } from "./pages/home-dashboard-page";
 import { GamesWorkspacePage } from "./pages/games-workspace-page";
@@ -14,6 +15,12 @@ import { useGameTrackerData } from "../hooks/use-game-tracker-data";
 import { readPhotoFile } from "../lib/client/files";
 import { apiRequest } from "../lib/client/api";
 import { NAV_ITEMS } from "../lib/client/constants";
+
+function currentMonthKey() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  return `${now.getFullYear()}-${month}`;
+}
 
 export default function GameTrackerApp({ sessionUser, authConfigured }) {
   const [activePage, setActivePage] = useState("dashboard");
@@ -31,6 +38,12 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
   const [createGameForm, setCreateGameForm] = useState({ title: "", gameTypeId: "", visibility: "public" });
   const [addPlayersState, setAddPlayersState] = useState({ game: null, userIds: [] });
   const [scoreDialogState, setScoreDialogState] = useState({ game: null, entries: [], nextRoundNumber: 1 });
+  const [preGameProbabilityState, setPreGameProbabilityState] = useState({
+    loading: false,
+    probabilities: [],
+    narrative: "",
+    cached: false,
+  });
   const [sessionLeaderboardState, setSessionLeaderboardState] = useState({ game: null });
   const [listRefreshKey, setListRefreshKey] = useState(0);
   const [profileData, setProfileData] = useState(null);
@@ -59,6 +72,28 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileError, setProfileError] = useState("");
   const [uploadingProfilePhoto, setUploadingProfilePhoto] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatMessages, setChatMessages] = useState([
+    {
+      role: "assistant",
+      content:
+        "Ask about win rates, rivalries, head-to-heads, or group trends. I’ll answer from your game history.",
+    },
+  ]);
+  const [seasonRecapState, setSeasonRecapState] = useState({
+    periodKey: currentMonthKey(),
+    loading: false,
+    recap: "",
+    summary: null,
+    cached: false,
+  });
+  const [rivalryState, setRivalryState] = useState({
+    gameTypeId: "",
+    loading: false,
+    items: [],
+    cached: false,
+  });
   const { data, loading, error, paletteMap, refresh } = useGameTrackerData(
     Boolean(sessionUser && authState.onboarded)
   );
@@ -431,6 +466,43 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
     }
   }
 
+  async function loadPreGameProbability(game) {
+    if (!game?.game_type_id || (game.members || []).length < 2) {
+      setPreGameProbabilityState({
+        loading: false,
+        probabilities: [],
+        narrative: "",
+        cached: false,
+      });
+      return;
+    }
+
+    try {
+      setPreGameProbabilityState((current) => ({ ...current, loading: true }));
+      const result = await apiRequest("/api/ai/pre-game-win-probability", {
+        method: "POST",
+        body: {
+          game_type_id: game.game_type_id,
+          user_ids: game.members.map((member) => member.user_id),
+        },
+      });
+      setPreGameProbabilityState({
+        loading: false,
+        probabilities: result.probabilities || [],
+        narrative: result.narrative || "",
+        cached: Boolean(result.cached),
+      });
+    } catch (requestError) {
+      setPreGameProbabilityState({
+        loading: false,
+        probabilities: [],
+        narrative: "",
+        cached: false,
+      });
+      showToast(requestError.message, "error");
+    }
+  }
+
   function openScoreDialog(game) {
     const nextRoundNumber =
       Math.max(0, ...(game.recent_scores || []).map((entry) => entry.round_number || 0)) + 1;
@@ -439,6 +511,13 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
       nextRoundNumber,
       entries: game.members.map((member) => ({ user_id: member.user_id, score: "" })),
     });
+    setPreGameProbabilityState({
+      loading: false,
+      probabilities: [],
+      narrative: "",
+      cached: false,
+    });
+    loadPreGameProbability(game);
   }
 
   async function handleEndGame(game) {
@@ -487,8 +566,86 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
       await refresh();
       setListRefreshKey((current) => current + 1);
       setScoreDialogState({ game: null, entries: [], nextRoundNumber: 1 });
+      setPreGameProbabilityState({ loading: false, probabilities: [], narrative: "", cached: false });
       showToast("Scores saved");
     } catch (requestError) {
+      showToast(requestError.message, "error");
+    }
+  }
+
+  async function handleSubmitChat() {
+    const message = chatInput.trim();
+    if (!message) {
+      return;
+    }
+
+    setChatMessages((current) => [...current, { role: "user", content: message }]);
+    setChatInput("");
+    setChatLoading(true);
+
+    try {
+      const result = await apiRequest("/api/ai/stats-chat", {
+        method: "POST",
+        body: { message },
+      });
+      setChatMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          content: result.answer || "I could not produce an answer for that question yet.",
+        },
+      ]);
+    } catch (requestError) {
+      setChatMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          content: `I hit an error while answering that: ${requestError.message}`,
+        },
+      ]);
+      showToast(requestError.message, "error");
+    } finally {
+      setChatLoading(false);
+    }
+  }
+
+  async function handleGenerateSeasonRecap() {
+    try {
+      setSeasonRecapState((current) => ({ ...current, loading: true }));
+      const result = await apiRequest("/api/ai/season-recap", {
+        method: "POST",
+        body: { period_key: seasonRecapState.periodKey },
+      });
+      setSeasonRecapState((current) => ({
+        ...current,
+        loading: false,
+        recap: result.recap || "",
+        summary: result.summary || null,
+        cached: Boolean(result.cached),
+      }));
+    } catch (requestError) {
+      setSeasonRecapState((current) => ({ ...current, loading: false }));
+      showToast(requestError.message, "error");
+    }
+  }
+
+  async function handleGenerateRivalries() {
+    try {
+      setRivalryState((current) => ({ ...current, loading: true }));
+      const result = await apiRequest("/api/ai/rivalry-tracker", {
+        method: "POST",
+        body: {
+          game_type_id: rivalryState.gameTypeId || undefined,
+        },
+      });
+      setRivalryState((current) => ({
+        ...current,
+        loading: false,
+        items: result.rivalries || [],
+        cached: Boolean(result.cached),
+      }));
+    } catch (requestError) {
+      setRivalryState((current) => ({ ...current, loading: false }));
       showToast(requestError.message, "error");
     }
   }
@@ -570,8 +727,12 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
             }
             onSubmitAddPlayers={submitAddPlayers}
             scoreDialogState={scoreDialogState}
+            preGameProbabilityState={preGameProbabilityState}
             onOpenScoreDialog={openScoreDialog}
-            onCloseScoreDialog={() => setScoreDialogState({ game: null, entries: [], nextRoundNumber: 1 })}
+            onCloseScoreDialog={() => {
+              setScoreDialogState({ game: null, entries: [], nextRoundNumber: 1 });
+              setPreGameProbabilityState({ loading: false, probabilities: [], narrative: "", cached: false });
+            }}
             onChangeScoreEntry={(index, value) =>
               setScoreDialogState((current) => ({
                 ...current,
@@ -581,6 +742,7 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
               }))
             }
             onSubmitScores={submitScores}
+            onRefreshPreGameProbability={() => loadPreGameProbability(scoreDialogState.game)}
             sessionLeaderboardState={sessionLeaderboardState}
             onOpenSessionLeaderboard={(game) => setSessionLeaderboardState({ game })}
             onCloseSessionLeaderboard={() => setSessionLeaderboardState({ game: null })}
@@ -611,6 +773,28 @@ export default function GameTrackerApp({ sessionUser, authConfigured }) {
                 pagination: { ...current.pagination, page: 1 },
               }))
             }
+          />
+        );
+      case "ai":
+        return (
+          <AiHubPage
+            data={data}
+            paletteMap={paletteMap}
+            chatMessages={chatMessages}
+            chatInput={chatInput}
+            chatLoading={chatLoading}
+            onChangeChatInput={setChatInput}
+            onSubmitChat={handleSubmitChat}
+            seasonRecapState={seasonRecapState}
+            onChangeSeasonRecapPeriod={(periodKey) =>
+              setSeasonRecapState((current) => ({ ...current, periodKey }))
+            }
+            onGenerateSeasonRecap={handleGenerateSeasonRecap}
+            rivalryState={rivalryState}
+            onChangeRivalryGameTypeId={(gameTypeId) =>
+              setRivalryState((current) => ({ ...current, gameTypeId }))
+            }
+            onGenerateRivalries={handleGenerateRivalries}
           />
         );
       case "leaderboard":

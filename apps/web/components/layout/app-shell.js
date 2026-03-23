@@ -5,6 +5,7 @@ import SportsEsportsOutlinedIcon from "@mui/icons-material/SportsEsportsOutlined
 import LeaderboardOutlinedIcon from "@mui/icons-material/LeaderboardOutlined";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import ExtensionOutlinedIcon from "@mui/icons-material/ExtensionOutlined";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
 import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
 import {
@@ -27,6 +28,7 @@ const ICONS = {
   dashboard: DashboardOutlinedIcon,
   "game-types": ExtensionOutlinedIcon,
   games: SportsEsportsOutlinedIcon,
+  ai: AutoAwesomeOutlinedIcon,
   leaderboard: LeaderboardOutlinedIcon,
   profile: AccountCircleOutlinedIcon,
 };
